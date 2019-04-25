@@ -21,7 +21,7 @@ from tpQtLib.Qt.QtWidgets import *
 import tpNameIt as tp
 from tpPyUtils import jsonio
 from tpQtLib.core import window
-from tpNameIt.lib import namelib as naming
+from tpNameIt.core import namelib as naming
 from tpNameIt.resources import resource
 
 

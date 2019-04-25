@@ -45,7 +45,7 @@ class tpNameIt(object):
         """
 
         global logger
-        logger = logger_utils.Logger(name='tpNameIt', level=logger_utils.LoggerLevel.WARNING)
+        logger = logger_utils.Logger(name='tpNameIt', level=logger_utils.LoggerLevel.WARNING).logger
         logger.debug('Initializing tpNameIt logger ...')
         return logger
 
