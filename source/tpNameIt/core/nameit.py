@@ -5,7 +5,6 @@
 Manager that controls the naming convention used on rigging tools
 """
 
-
 from __future__ import print_function, division, absolute_import
 
 # TODO: When changing a token name, check the list of expressions and update them if an expression was already using that token
@@ -22,7 +21,6 @@ import tpNameIt as tp
 from tpPyUtils import jsonio
 from tpQtLib.core import window
 from tpNameIt.core import namelib as naming
-from tpNameIt.resources import resource
 
 
 # region Constants
@@ -766,7 +764,7 @@ class NameIt(window.MainWindow, object):
         toolbar.setMovable(True)
         toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
 
-        play_icon = resource.icon('rename')
+        play_icon = tp.resource.icon('rename')
 
         renamer_btn = QToolButton()
         renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
