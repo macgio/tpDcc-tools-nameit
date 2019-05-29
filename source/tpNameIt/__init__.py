@@ -11,6 +11,7 @@ import os
 import types
 import pkgutil
 import importlib
+import traceback
 from collections import OrderedDict
 
 from tpPyUtils import logger as logger_utils
@@ -45,7 +46,7 @@ class tpNameIt(object):
         """
 
         global logger
-        logger = logger_utils.Logger(name='tpNameIt', level=logger_utils.LoggerLevel.WARNING)
+        logger = logger_utils.Logger(name='tpNameIt', level=logger_utils.LoggerLevel.WARNING).logger
         logger.debug('Initializing tpNameIt logger ...')
         return logger
 
@@ -91,7 +92,7 @@ class tpNameIt(object):
                 return mod
             return None
         except (ImportError, AttributeError) as e:
-            tpNameIt.logger.error('FAILED IMPORT: {} -> {}'.format(package_name, str(e)))
+            tpNameIt.logger.error('FAILED IMPORT: {} -> {} | {}'.format(package_name, e, traceback.format_exc()))
             pass
 
     @classmethod
