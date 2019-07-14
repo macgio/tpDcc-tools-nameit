@@ -17,18 +17,16 @@ from collections import OrderedDict
 from tpQtLib.Qt.QtCore import *
 from tpQtLib.Qt.QtWidgets import *
 
+import tpQtLib
 import tpNameIt as tp
 from tpPyUtils import jsonio
-from tpQtLib.core import window
 from tpNameIt.core import namelib as naming
 
 
-# region Constants
 _DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'naming_data.json')
-# endregion
 
 
-class NameIt(window.MainWindow, object):
+class NameIt(tpQtLib.MainWindow, object):
     """
     This manager will display all tests found in MAYA_MODULE_PATH and allow the user to selectively run the tests.  The
     dialog will also automatically get any code updates without any need to reload if the dialog is opened before any other
@@ -39,12 +37,12 @@ class NameIt(window.MainWindow, object):
 
     def __init__(self):
         super(NameIt, self).__init__(
-            name = 'NamingManagerWindow',
-            title = 'RigLib - Naming Manager',
-            size = (800, 535),
-            fixed_size = False,
-            auto_run = True,
-            frame_less = True,
+            name='NamingManagerWindow',
+            title='RigLib - Naming Manager',
+            size=(800, 535),
+            fixed_size=False,
+            auto_run=True,
+            frame_less=True,
             use_style=False
         )
 
@@ -842,9 +840,8 @@ class NameIt(window.MainWindow, object):
         """
 
         try:
-            from tpRenamer import renamer
-            renamer_win = renamer.run()
-            return renamer_win
+            import tpRenamer
+            tpRenamer.run(True)
         except Exception:
             tp.logger.warning('Renamer Tools is not available!')
             return None

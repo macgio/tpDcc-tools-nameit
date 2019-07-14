@@ -14,7 +14,7 @@ import json
 import os
 from collections import OrderedDict
 
-import tpRigToolkit as tp
+import tpNameIt as tp
 from tpPyUtils import strings as string_utils
 # endregion
 
