@@ -2,7 +2,7 @@
 
 Python module that manages the nomenclature of your DCC scenes:
 
-* Nomenclature are based in the concept of rules and tokens. Those rules and tokens can be setup in a per-project basis.
+* Nomenclature is based on rules and tokens. Those can be setup in a per-project basis.
 * DCC agnostic way, the library works in any DCC supported by tpDccLib
 
 ## Dependencies
