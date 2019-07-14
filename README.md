@@ -1,5 +1,10 @@
 # tpNameIt
 
+<p align="left">
+    <a href="https://github.com/tpoveda/tpPyUtils/blob/master/LICENSE" alt="License">
+        <img src="https://img.shields.io/github/license/tpoveda/tpNameIt.svg" /></a>
+</p>
+
 Python module that manages the nomenclature of your DCC scenes:
 
 * Nomenclature is based on rules and tokens. Those can be setup in a per-project basis.
