@@ -755,16 +755,16 @@ class NameIt(tpQtLib.MainWindow, object):
         toolbar.setMovable(True)
         toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
 
-        play_icon = tpNameIt.resource.icon('rename')
-
-        renamer_btn = QToolButton()
-        renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        run_tasks_action = QAction(play_icon, 'Renamer', renamer_btn)
-        renamer_btn.setDefaultAction(run_tasks_action)
-
-        renamer_btn.clicked.connect(self._on_open_renamer_tool)
-
-        toolbar.addWidget(renamer_btn)
+        if self._is_renamer_tool_available():
+            play_icon = tpNameIt.resource.icon('rename')
+            renamer_btn = QToolButton()
+            renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+            run_tasks_action = QAction(play_icon, 'Renamer', renamer_btn)
+            renamer_btn.setDefaultAction(run_tasks_action)
+            renamer_btn.clicked.connect(self._on_open_renamer_tool)
+            toolbar.addWidget(renamer_btn)
+        else:
+            toolbar.setVisible(False)
 
     def _init_db(self):
 
@@ -838,6 +838,19 @@ class NameIt(tpQtLib.MainWindow, object):
         except Exception:
             tpNameIt.logger.warning('Renamer Tools is not available!')
             return None
+
+    def _is_renamer_tool_available(self):
+        """
+        Returns whether or not tpRenamer tool is available or not
+        :return: bool
+        """
+
+        try:
+            import tpRenamer
+        except Exception:
+            return False
+
+        return True
 
 
 class ValuesTableModel(QAbstractTableModel, object):
