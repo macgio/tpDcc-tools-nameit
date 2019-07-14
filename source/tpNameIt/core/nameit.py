@@ -18,12 +18,9 @@ from tpQtLib.Qt.QtCore import *
 from tpQtLib.Qt.QtWidgets import *
 
 import tpQtLib
-import tpNameIt as tp
+import tpNameIt
 from tpPyUtils import jsonio
 from tpNameIt.core import namelib as naming
-
-
-_DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'naming_data.json')
 
 
 class NameIt(tpQtLib.MainWindow, object):
@@ -33,7 +30,10 @@ class NameIt(tpQtLib.MainWindow, object):
     tools have been run.
     """
 
-    _ACTIVE_RULE = None
+    ACTIVE_RULE = None
+
+    # You can override this function to store naming data files in custom path
+    DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'naming_data.json')
 
     def __init__(self):
         super(NameIt, self).__init__(
@@ -46,7 +46,6 @@ class NameIt(tpQtLib.MainWindow, object):
             use_style=False
         )
 
-    # region Functions
     @staticmethod
     def get_active_rule():
 
@@ -103,7 +102,7 @@ class NameIt(tpQtLib.MainWindow, object):
 
         rule_fields = active_rule.fields()
         if len(rule_fields) != len(string_split):
-            tp.logger.warning('Given string "{}" is not a valid name generated with current nomenclature rule: {}'.format(string_to_parse, active_rule.name()))
+            tpNameIt.logger.warning('Given string "{}" is not a valid name generated with current nomenclature rule: {}'.format(string_to_parse, active_rule.name()))
             return None
 
         found_index = -1
@@ -127,9 +126,7 @@ class NameIt(tpQtLib.MainWindow, object):
                 return naming.solve(*args)
             else:
                 return naming.solve(**kwargs)
-    # endregion
 
-    # region Override Functions
     def ui(self):
         super(NameIt, self).ui()
 
@@ -321,9 +318,7 @@ class NameIt(tpQtLib.MainWindow, object):
         self.remove_key_value_btn.clicked.connect(self.on_remove_token_value)
         self.description_token_text.textChanged.connect(self.on_edit_token_description)
         self.default_cbx.currentIndexChanged.connect(self.on_edit_token_default)
-    # endregion
 
-    # region Functions
     def add_expression(self, name):
 
         """
@@ -754,15 +749,13 @@ class NameIt(tpQtLib.MainWindow, object):
         """
         item = self.tokens_list.currentRow()
         NamingData.set_token_description(item, self.description_token_text.toPlainText())
-    # endregion
 
-    # region Private Functions
     def _setup_toolbar(self):
         toolbar = self.add_toolbar('Main ToolBar')
         toolbar.setMovable(True)
         toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
 
-        play_icon = tp.resource.icon('rename')
+        play_icon = tpNameIt.resource.icon('rename')
 
         renamer_btn = QToolButton()
         renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
@@ -779,12 +772,12 @@ class NameIt(tpQtLib.MainWindow, object):
         Initializes the naming data base
         """
 
-        if not os.path.isfile(_DATA_FILE):
-            f = open(_DATA_FILE, 'w')
+        if not os.path.isfile(NameIt.DATA_FILE):
+            f = open(NameIt.DATA_FILE, 'w')
             f.close()
 
 
-        data = jsonio.read_file(_DATA_FILE)
+        data = jsonio.read_file(NameIt.DATA_FILE)
         if data is None:
             data = {'nameit':
                 {
@@ -794,7 +787,7 @@ class NameIt(tpQtLib.MainWindow, object):
                         []
                 },
             }
-            jsonio.write_to_file(data, _DATA_FILE)
+            jsonio.write_to_file(data, NameIt.DATA_FILE)
         else:
             self._init_data()
 
@@ -843,12 +836,10 @@ class NameIt(tpQtLib.MainWindow, object):
             import tpRenamer
             tpRenamer.run(True)
         except Exception:
-            tp.logger.warning('Renamer Tools is not available!')
+            tpNameIt.logger.warning('Renamer Tools is not available!')
             return None
-    # endregion
 
 
-# region Classes
 class ValuesTableModel(QAbstractTableModel, object):
     """
     Base model for the tokens table
@@ -859,7 +850,6 @@ class ValuesTableModel(QAbstractTableModel, object):
         self.my_list = myList
         self.header = header
 
-    # region Override Functions
     def rowCount(self, parent):
         return len(self.my_list)
 
@@ -877,7 +867,6 @@ class ValuesTableModel(QAbstractTableModel, object):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.header[col]
         return None
-    # endregion
 
 
 class TokensTable(QTableWidget):
@@ -888,7 +877,6 @@ class TokensTable(QTableWidget):
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
-    # region Functions
     def set_data(self):
         horHeaders = []
         for n, key in enumerate(sorted(self.data.keys())):
@@ -897,7 +885,6 @@ class TokensTable(QTableWidget):
                 newItem = QTableWidgetItem(item)
                 self.setItem(m, n, newItem)
         self.setHorizontalHeaderLabels(horHeaders)
-    # endregion
 
 
 class Rule (object):
@@ -986,7 +973,7 @@ class NamingData(object):
         """
 
         try:
-            data = jsonio.read_file(_DATA_FILE)
+            data = jsonio.read_file(NameIt.DATA_FILE)
             return data
         except Exception:
             pass
@@ -1000,7 +987,7 @@ class NamingData(object):
         :return:
         """
         try:
-            return jsonio.write_to_file(data, _DATA_FILE)
+            return jsonio.write_to_file(data, NameIt.DATA_FILE)
         except Exception:
             pass
         return False
@@ -1280,7 +1267,6 @@ class NamingData(object):
             data[cls._n][cls._t][token_index]['description'] = token_description
             return cls.write_data(data)
         return False
-# endregion
 
 
 def run():
