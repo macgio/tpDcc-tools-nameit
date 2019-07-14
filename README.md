@@ -33,6 +33,9 @@ Automatic installation for tpNameIt is not finished yet.
 
 1. If you only want to use tpNameIt libraries functionality
 ```python
+import tpPyUtils
+tpPyUtils.init()
+
 import tpDccLib
 tpDccLib.init()
 
@@ -45,6 +48,9 @@ tpNameIt.init()
 
 2. If you want to launch tpNameIt UI
 ```python
+import tpPyUtils
+tpPyUtils.init()
+
 import tpDccLib
 tpDccLib.init()
 
