@@ -18,25 +18,16 @@ from Qt.QtCore import *
 from Qt.QtWidgets import *
 
 import tpQtLib
+from tpQtLib.core import base
+
 import tpNameIt
 from tpPyUtils import jsonio
 from tpNameIt.core import namelib as naming
 
 
-class NameIt(tpQtLib.MainWindow, object):
-    """
-    This manager will display all tests found in MAYA_MODULE_PATH and allow the user to selectively run the tests.  The
-    dialog will also automatically get any code updates without any need to reload if the dialog is opened before any other
-    tools have been run.
-    """
-
-    ACTIVE_RULE = None
-
-    # You can override this function to store naming data files in custom path
-    DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'naming_data.json')
-
+class NameItWindow(tpQtLib.MainWindow, object):
     def __init__(self):
-        super(NameIt, self).__init__(
+        super(NameItWindow, self).__init__(
             name='NamingManagerWindow',
             title='RigLib - Naming Manager',
             size=(800, 535),
@@ -45,6 +36,67 @@ class NameIt(tpQtLib.MainWindow, object):
             frame_less=True,
             use_style=False
         )
+
+        # Setup ToolBar
+        self._setup_toolbar()
+
+    def ui(self):
+        super(NameItWindow, self).ui()
+
+        self._name_it = NameIt()
+        self.main_layout.addWidget(self._name_it)
+
+    def _setup_toolbar(self):
+        toolbar = self.add_toolbar('Main ToolBar')
+        toolbar.setMovable(True)
+        toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
+
+        if self._is_renamer_tool_available():
+            play_icon = tpNameIt.resource.icon('rename')
+            renamer_btn = QToolButton()
+            renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+            run_tasks_action = QAction(play_icon, 'Renamer', renamer_btn)
+            renamer_btn.setDefaultAction(run_tasks_action)
+            renamer_btn.clicked.connect(self._on_open_renamer_tool)
+            toolbar.addWidget(renamer_btn)
+        else:
+            toolbar.setVisible(False)
+
+    def _on_open_renamer_tool(self):
+        """
+        Internal function that is used by toolbar to open Renamer Tool
+        """
+
+        try:
+            import tpRenamer
+            tpRenamer.run(True)
+        except Exception:
+            tpNameIt.logger.warning('Renamer Tools is not available!')
+            return None
+
+    def _is_renamer_tool_available(self):
+        """
+        Returns whether or not tpRenamer tool is available or not
+        :return: bool
+        """
+
+        try:
+            import tpRenamer
+        except Exception:
+            return False
+
+        return True
+
+
+class NameIt(base.BaseWidget, object):
+
+    ACTIVE_RULE = None
+
+    # You can override this function to store naming data files in custom path
+    DATA_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'naming_data.json')
+
+    def __init__(self, parent=None):
+        super(NameIt, self).__init__(parent=parent)
 
     @staticmethod
     def get_active_rule():
@@ -57,6 +109,10 @@ class NameIt(tpQtLib.MainWindow, object):
 
     @staticmethod
     def set_active_rule(name):
+        """
+        Sets the current active rule
+        :param name: str
+        """
 
         # First, we clean the status of the naming library
         naming.remove_all_tokens()
@@ -286,9 +342,6 @@ class NameIt(tpQtLib.MainWindow, object):
         tokens_layout.addLayout(description_token_layout)
         group_layout.addWidget(self.tokens_widget)
         self.tokens_widget.hide()
-
-        # Setup ToolBar
-        self._setup_toolbar()
 
         # Initialize database
         self._init_db()
@@ -750,22 +803,6 @@ class NameIt(tpQtLib.MainWindow, object):
         item = self.tokens_list.currentRow()
         NamingData.set_token_description(item, self.description_token_text.toPlainText())
 
-    def _setup_toolbar(self):
-        toolbar = self.add_toolbar('Main ToolBar')
-        toolbar.setMovable(True)
-        toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
-
-        if self._is_renamer_tool_available():
-            play_icon = tpNameIt.resource.icon('rename')
-            renamer_btn = QToolButton()
-            renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-            run_tasks_action = QAction(play_icon, 'Renamer', renamer_btn)
-            renamer_btn.setDefaultAction(run_tasks_action)
-            renamer_btn.clicked.connect(self._on_open_renamer_tool)
-            toolbar.addWidget(renamer_btn)
-        else:
-            toolbar.setVisible(False)
-
     def _init_db(self):
 
         """
@@ -826,31 +863,6 @@ class NameIt(tpQtLib.MainWindow, object):
         except:
             pass
         return False
-
-    def _on_open_renamer_tool(self):
-        """
-        Internal function that is used by toolbar to open Renamer Tool
-        """
-
-        try:
-            import tpRenamer
-            tpRenamer.run(True)
-        except Exception:
-            tpNameIt.logger.warning('Renamer Tools is not available!')
-            return None
-
-    def _is_renamer_tool_available(self):
-        """
-        Returns whether or not tpRenamer tool is available or not
-        :return: bool
-        """
-
-        try:
-            import tpRenamer
-        except Exception:
-            return False
-
-        return True
 
 
 class ValuesTableModel(QAbstractTableModel, object):
@@ -1283,7 +1295,7 @@ class NamingData(object):
 
 
 def run():
-    win = NameIt()
+    win = NameItWindow()
     win.show()
 
     return win
