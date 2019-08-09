@@ -11,11 +11,13 @@ Python module that manages the nomenclature of your pipelines:
 
 Dependencies
 -------------------
+
 * **tpPyUtils**: https://github.com/tpoveda/tpPyUtils
 * **tpDccLib**: https://github.com/tpoveda/tpDccLib
 * **tpQtLib**: https://github.com/tpoveda/tpQtLib
 
 Depending on the DCC you are going to use you will need to download and install one of the following repositories:
+
 * **3ds Max**: https://github.com/tpoveda/tpMaxLib
 * **Maya**: https://github.com/tpoveda/tpMayaLib
 * **Houdini**: *Work in Progress*
@@ -24,11 +26,12 @@ Depending on the DCC you are going to use you will need to download and install 
 
 Installation
 -------------------
+
 Manual
 ~~~~~~~~~~~~~~~~~~~~~~
+
 1. Clone/Download tpNameIt dependencies Python packages and follow instructions to install them.
-2. Clone/Download tpNameIt anywhere in your PC (If you download the repo, you will need to extract
-the contents of the .zip file).
+2. Clone/Download tpNameIt anywhere in your PC (If you download the repo, you will need to extract the contents of the .zip file).
 3. Copy **tpNameIt** folder located inside **source** folder in a path added to **sys.path**
 
 Automatic
