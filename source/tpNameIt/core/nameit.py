@@ -14,8 +14,8 @@ import re
 from functools import partial
 from collections import OrderedDict
 
-from tpQtLib.Qt.QtCore import *
-from tpQtLib.Qt.QtWidgets import *
+from Qt.QtCore import *
+from Qt.QtWidgets import *
 
 import tpQtLib
 import tpNameIt
