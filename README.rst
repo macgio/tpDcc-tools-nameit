@@ -1,16 +1,16 @@
-# tpNameIt
+tpNameIt
+============================================================
 
-<p align="left">
-    <a href="https://github.com/tpoveda/tpPyUtils/blob/master/LICENSE" alt="License">
-        <img src="https://img.shields.io/github/license/tpoveda/tpNameIt.svg" /></a>
-</p>
+.. image:: https://img.shields.io/github/license/tpoveda/tpNameIt.svg
+    :target: https://github.com/tpoveda/tpPyUtils/blob/master/LICENSE
 
-Python module that manages the nomenclature of your DCC scenes:
+Python module that manages the nomenclature of your pipelines:
 
 * Nomenclature is based on rules and tokens. Those can be setup in a per-project basis.
 * DCC agnostic way, the library works in any DCC supported by tpDccLib
 
-## Dependencies
+Dependencies
+-------------------
 * **tpPyUtils**: https://github.com/tpoveda/tpPyUtils
 * **tpDccLib**: https://github.com/tpoveda/tpDccLib
 * **tpQtLib**: https://github.com/tpoveda/tpQtLib
@@ -22,46 +22,54 @@ Depending on the DCC you are going to use you will need to download and install 
 * **Nuke**: *Work in Progress*
 * **Blender**: *Work in Progress*
 
-## Installation
-### Manual
+Installation
+-------------------
+Manual
+~~~~~~~~~~~~~~~~~~~~~~
 1. Clone/Download tpNameIt dependencies Python packages and follow instructions to install them.
 2. Clone/Download tpNameIt anywhere in your PC (If you download the repo, you will need to extract
 the contents of the .zip file).
 3. Copy **tpNameIt** folder located inside **source** folder in a path added to **sys.path**
 
-### Automatic
+Automatic
+~~~~~~~~~~~~~~~~~~~~~~
 Automatic installation for tpNameIt is not finished yet.
 
-## Usage
+Usage
+-------------------
 
-### Initialization Code
+Initialization Code
+~~~~~~~~~~~~~~~~~~~~~~
 
 1. If you only want to use tpNameIt libraries functionality
-```python
-import tpPyUtils
-tpPyUtils.init()
 
-import tpDccLib
-tpDccLib.init()
+.. code-block:: python
 
-import tpQtLib
-tpQtLib.init()
+    import tpPyUtils
+    tpPyUtils.init()
 
-import tpNameIt
-tpNameIt.init()
-```
+    import tpDccLib
+    tpDccLib.init()
+
+    import tpQtLib
+    tpQtLib.init()
+
+    import tpNameIt
+    tpNameIt.init()
+
 
 2. If you want to launch tpNameIt UI
-```python
-import tpPyUtils
-tpPyUtils.init()
 
-import tpDccLib
-tpDccLib.init()
+.. code-block:: python
 
-import tpQtLib
-tpQtLib.init()
+    import tpPyUtils
+    tpPyUtils.init()
 
-import tpNameIt
-tpNameIt.run()
-```
+    import tpDccLib
+    tpDccLib.init()
+
+    import tpQtLib
+    tpQtLib.init()
+
+    import tpNameIt
+    tpNameIt.run()
