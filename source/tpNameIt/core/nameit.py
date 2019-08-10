@@ -119,13 +119,13 @@ class NameIt(base.BaseWidget, object):
         naming.remove_all_rules()
 
         # Load rules from the naming manager
-        rules = NamingData.get_rules()
+        rules = NamingData.get_rules(data_file=self.DATA_FILE)
         for rule in rules:
             expressions = rule.get_expression_tokens()
             naming.add_rule(rule.name, rule.iterator_format, *expressions)
 
         # Load tokens from the naming manager
-        tokens = NamingData.get_tokens()
+        tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
         for token in tokens:
             tokens_keywords = token.get_values_as_keyword()
             naming.add_token(token.name, **tokens_keywords)
@@ -395,10 +395,10 @@ class NameIt(base.BaseWidget, object):
         # First, we clear the expression menu
         self.expression_menu.clear()
 
-        tokens = NamingData.get_tokens()
+        tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
         if tokens and len(tokens) > 0:
             self.expression_btn.setEnabled(True)
-            tokens = NamingData.get_tokens()
+            tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
             for token in tokens:
                 self.expression_menu.addAction(token.name, partial(self.add_expression, token.name))
         else:
@@ -417,7 +417,7 @@ class NameIt(base.BaseWidget, object):
             self.iterator_cbx.setCurrentIndex(0)
             self.rules_widget.setEnabled(False)
         else:
-            rule = NamingData.get_rule(self.rules_list.currentRow())
+            rule = NamingData.get_rule(self.rules_list.currentRow(), data_file=self.DATA_FILE)
             if rule is not None:
                 self.expression_line.setText(rule.expression)
                 self.description_rule_text.setText(rule.description)
@@ -439,11 +439,11 @@ class NameIt(base.BaseWidget, object):
 
         item = self.tokens_list.currentRow()
         self.default_cbx.addItem('')
-        tokens = NamingData.get_tokens()
+        tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
         for value in tokens[item].values['key']:
             self.default_cbx.addItem(value)
 
-        self.default_cbx.setCurrentIndex(NamingData.get_default_index(item))
+        self.default_cbx.setCurrentIndex(NamingData.get_default_index(item, data_file=self.DATA_FILE))
 
         self.default_cbx.blockSignals(False)
 
@@ -454,7 +454,7 @@ class NameIt(base.BaseWidget, object):
         if self.tokens_list.count() > 0:
             keys = []
             values = []
-            tokens = NamingData.get_tokens()
+            tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
             for i in range(len(tokens[item].values['key'])):
                 self.values_table.insertRow(self.values_table.rowCount())
                 keys.append(QTableWidgetItem())
@@ -517,7 +517,7 @@ class NameIt(base.BaseWidget, object):
 
             # Add the data of the rule to our JSON data file
             if len(args) == 0:
-                NamingData.add_rule(rule)
+                NamingData.add_rule(rule, data_file=self.DATA_FILE)
 
             # Update necessary UI Widgets
             if not load_rule:
@@ -541,10 +541,10 @@ class NameIt(base.BaseWidget, object):
             rule_index = self.rules_list.currentRow()
             name = self.rules_list.currentItem().text()
             if rule_index > -1 and name is not None:
-                rule = NamingData.get_rule(rule_index)
+                rule = NamingData.get_rule(rule_index, data_file=self.DATA_FILE)
                 if rule is not None:
                     if rule.name == name:
-                        NamingData.remove_rule(rule_index)
+                        NamingData.remove_rule(rule_index, data_file=self.DATA_FILE)
                         self.rules_list.takeItem(self.rules_list.row(self.rules_list.currentItem()))
                 self.update_rules_properties_state()
 
@@ -560,7 +560,7 @@ class NameIt(base.BaseWidget, object):
 
         if rule_item is not None:
             if rule_item.listWidget().count() > 0:
-                rule = NamingData.get_rule(rule_item.listWidget().currentRow())
+                rule = NamingData.get_rule(rule_item.listWidget().currentRow(), data_file=self.DATA_FILE)
                 if rule is not None:
                     self.description_rule_text.setText(rule.description)
                     self.expression_line.setText(rule.expression)
@@ -577,8 +577,8 @@ class NameIt(base.BaseWidget, object):
         """
 
         rule_index = rule_item.listWidget().currentRow()
-        NamingData.set_rule_name(rule_index, rule_item.text())
-        rules = NamingData.get_rules()
+        NamingData.set_rule_name(rule_index, rule_item.text(), data_file=self.DATA_FILE)
+        rules = NamingData.get_rules(data_file=self.DATA_FILE)
         rules[rule_index].name = rule_item.text()
 
     def on_edit_rule_expression(self):
@@ -589,8 +589,8 @@ class NameIt(base.BaseWidget, object):
         """
 
         rule_index = self.rules_list.currentRow()
-        NamingData.set_rule_expression(rule_index, self.expression_line.text())
-        rules = NamingData.get_rules()
+        NamingData.set_rule_expression(rule_index, self.expression_line.text(), data_file=self.DATA_FILE)
+        rules = NamingData.get_rules(data_file=self.DATA_FILE)
         if len(rules) > 0:
             rules[rule_index].expression = self.expression_line.text()
 
@@ -602,14 +602,20 @@ class NameIt(base.BaseWidget, object):
         """
 
         rule_index = self.rules_list.currentRow()
-        NamingData.set_rule_description(rule_index, self.description_rule_text.toPlainText())
-        rules = NamingData.get_rules()
+        NamingData.set_rule_description(rule_index, self.description_rule_text.toPlainText(), data_file=self.DATA_FILE)
+        rules = NamingData.get_rules(data_file=self.DATA_FILE)
         rules[rule_index].description = self.description_rule_text.toPlainText()
 
     def on_edit_rule_iterator(self, iterator_index):
+        """
+        Changes iterator of the selected rule
+        :param iterator_index: int
+        :return: None
+        """
+
         rule_index = self.rules_list.currentRow()
-        NamingData.set_rule_iterator_format(rule_index, self.iterator_cbx.itemText(iterator_index))
-        rules = NamingData.get_rules()
+        NamingData.set_rule_iterator_format(rule_index, self.iterator_cbx.itemText(iterator_index), data_file=self.DATA_FILE)
+        rules = NamingData.get_rules(data_file=self.DATA_FILE)
         rules[rule_index].iterator_format = self.iterator_cbx.itemText(iterator_index)
 
     def on_add_token(self, *args):
@@ -639,7 +645,7 @@ class NameIt(base.BaseWidget, object):
 
             # Add the data of the token to our JSON data file
             if len(args) == 0:
-                NamingData.add_token(token)
+                NamingData.add_token(token, data_file=self.DATA_FILE)
 
             # Update necessary UI wigdets
             if not load_token:
@@ -663,10 +669,10 @@ class NameIt(base.BaseWidget, object):
             token_index = self.tokens_list.currentRow()
             name = self.tokens_list.currentItem().text()
             if token_index > -1 and name is not None:
-                token = NamingData.get_token(token_index)
+                token = NamingData.get_token(token_index, data_file=self.DATA_FILE)
                 if token is not None:
                     if token.name == name:
-                        NamingData.remove_token(token_index)
+                        NamingData.remove_token(token_index, data_file=self.DATA_FILE)
                         self.tokens_list.takeItem(self.tokens_list.row(self.tokens_list.currentItem()))
                 self.update_tokens_properties_state()
 
@@ -682,7 +688,7 @@ class NameIt(base.BaseWidget, object):
 
         if token_item is not None:
             if token_item.listWidget().count() > 0:
-                token = NamingData.get_token(token_item.listWidget().currentRow())
+                token = NamingData.get_token(token_item.listWidget().currentRow(), data_file=self.DATA_FILE)
                 if token is not None:
                     self.description_token_text.setText(token.description)
                     self.default_cbx.setCurrentIndex(int(token.default))
@@ -699,8 +705,8 @@ class NameIt(base.BaseWidget, object):
         """
 
         token_index = token_item.listWidget().currentRow()
-        NamingData.set_token_name(token_index, token_item.text())
-        tokens = NamingData.get_tokens()
+        NamingData.set_token_name(token_index, token_item.text(), data_file=self.DATA_FILE)
+        tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
         tokens[token_index].name = token_item.text()
 
     def on_change_token_value(self, item):
@@ -711,9 +717,9 @@ class NameIt(base.BaseWidget, object):
         """
 
         if item.column() == 0:
-            NamingData.set_token_key(self.tokens_list.currentRow(), item.row(), item.text())
+            NamingData.set_token_key(self.tokens_list.currentRow(), item.row(), item.text(), data_file=self.DATA_FILE)
         else:
-            NamingData.set_token_value(self.tokens_list.currentRow(), item.row(), item.text())
+            NamingData.set_token_value(self.tokens_list.currentRow(), item.row(), item.text(), data_file=self.DATA_FILE)
         self.update_default_token_list()
 
     def on_add_token_value(self, *args):
@@ -721,9 +727,9 @@ class NameIt(base.BaseWidget, object):
         self.description_rule_text.blockSignals(True)
 
         item_index = self.tokens_list.currentRow()
-        key_data = NamingData.add_token_value(item_index)
+        key_data = NamingData.add_token_value(item_index, data_file=self.DATA_FILE)
         if key_data:
-            tokens = NamingData.get_tokens()
+            tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
             tokens[item_index].values = key_data
             self.clean_tokens_key_table()
 
@@ -757,9 +763,9 @@ class NameIt(base.BaseWidget, object):
         self.description_rule_text.blockSignals(False)
 
         item_index = self.tokens_list.currentRow()
-        key_data = NamingData.remove_token_value(item_index, self.values_table.currentRow())
+        key_data = NamingData.remove_token_value(item_index, self.values_table.currentRow(), data_file=self.DATA_FILE)
         if key_data:
-            tokens = NamingData.get_tokens()
+            tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
             tokens[item_index].values = key_data
             self.clean_tokens_key_table()
 
@@ -781,7 +787,7 @@ class NameIt(base.BaseWidget, object):
             self.update_default_token_list()
 
             new_index = self.default_cbx.currentIndex()
-            NamingData.set_default_token(item_index, new_index)
+            NamingData.set_default_token(item_index, new_index, data_file=self.DATA_FILE)
             tokens[item_index].default = new_index
             self.default_cbx.setCurrentIndex(new_index)
 
@@ -794,14 +800,14 @@ class NameIt(base.BaseWidget, object):
         """
 
         item = self.tokens_list.currentRow()
-        NamingData.set_default_token(item, index)
+        NamingData.set_default_token(item, index, data_file=self.DATA_FILE)
 
     def on_edit_token_description(self):
         """
         Edits the token description
         """
         item = self.tokens_list.currentRow()
-        NamingData.set_token_description(item, self.description_token_text.toPlainText())
+        NamingData.set_token_description(item, self.description_token_text.toPlainText(), data_file=self.DATA_FILE)
 
     def _init_db(self):
 
@@ -809,12 +815,12 @@ class NameIt(base.BaseWidget, object):
         Initializes the naming data base
         """
 
-        if not os.path.isfile(NameIt.DATA_FILE):
-            f = open(NameIt.DATA_FILE, 'w')
+        if not os.path.isfile(self.DATA_FILE):
+            f = open(self.DATA_FILE, 'w')
             f.close()
 
 
-        data = jsonio.read_file(NameIt.DATA_FILE)
+        data = jsonio.read_file(self.DATA_FILE)
         if data is None:
             data = {'nameit':
                 {
@@ -824,7 +830,7 @@ class NameIt(base.BaseWidget, object):
                         []
                 },
             }
-            jsonio.write_to_file(data, NameIt.DATA_FILE)
+            jsonio.write_to_file(data, self.DATA_FILE)
         else:
             self._init_data()
 
@@ -839,7 +845,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         try:
-            rules = NamingData.get_rules()
+            rules = NamingData.get_rules(data_file=self.DATA_FILE)
             if rules is not None:
                 for rule in rules:
                     self.on_add_rule(rule)
@@ -855,7 +861,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         try:
-            tokens = NamingData.get_tokens()
+            tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
             if tokens is not None:
                 for token in tokens:
                     self.on_add_token(token)
@@ -990,7 +996,7 @@ class NamingData(object):
     _v = 'value'
 
     @classmethod
-    def load_data(cls):
+    def load_data(cls, data_file):
 
         """
         Load JSON Naming manager data
@@ -998,27 +1004,27 @@ class NamingData(object):
         """
 
         try:
-            data = jsonio.read_file(NameIt.DATA_FILE)
+            data = jsonio.read_file(data_file)
             return data
         except Exception:
             pass
         return None
 
     @classmethod
-    def write_data(cls, data):
+    def write_data(cls, data, data_file):
         """
         Writes data into Naming manager data
         :param data: JSON Naming manager data
         :return:
         """
         try:
-            return jsonio.write_to_file(data, NameIt.DATA_FILE)
+            return jsonio.write_to_file(data, data_file)
         except Exception:
             pass
         return False
 
     @classmethod
-    def add_rule(cls, rule):
+    def add_rule(cls, rule, data_file):
 
         """
         Adds a new rule into the naming data
@@ -1026,14 +1032,14 @@ class NamingData(object):
         :return:
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None and rule is not None:
             data[cls._n][cls._r].append(rule.data())
-            return cls.write_data(data)
+            return cls.write_data(data, data_file=data_file)
         return False
 
     @classmethod
-    def remove_rule(cls, rule_index):
+    def remove_rule(cls, rule_index, data_file):
 
         """
         Removes a rule from the naming data
@@ -1041,17 +1047,17 @@ class NamingData(object):
         :return: True if the rule is deleted successfully or False otherwise
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None and rule_index > -1:
             try:
                 data[cls._n][cls._r].pop(rule_index)
-                return cls.write_data(data)
+                return cls.write_data(data, data_file=data_file)
             except Exception:
                 pass
         return False
 
     @classmethod
-    def get_rule(cls, rule_index):
+    def get_rule(cls, rule_index, data_file):
 
         """
         Returns a rule from the naming data
@@ -1059,7 +1065,7 @@ class NamingData(object):
         :return: rule
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None and rule_index > -1:
             try:
                 rule = data[cls._n][cls._r][rule_index]
@@ -1069,14 +1075,14 @@ class NamingData(object):
             return None
 
     @classmethod
-    def get_rules(cls):
+    def get_rules(cls, data_file):
 
         """
         Get a list of all the rules on the Naming manager data
         :return list(tpNamingManger.tpRule): List of rules
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None:
             try:
                 rules_list = []
@@ -1089,7 +1095,7 @@ class NamingData(object):
         return None
 
     @classmethod
-    def set_rule_name(cls, rule_index, rule_name):
+    def set_rule_name(cls, rule_index, rule_name, data_file):
         """
         Set the name of a rule
         :param int rule_index: Index list of the rule
@@ -1097,50 +1103,50 @@ class NamingData(object):
         :return str: Updated data or False if an error happens
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None and rule_index > -1 and isinstance(rule_name, unicode):
             try:
                 data[cls._n][cls._r][rule_index]['name'] = rule_name
-                return NamingData.write_data(data)
+                return NamingData.write_data(data, data_file=data_file)
             except Exception:
                 pass
         return False
 
     @classmethod
-    def set_rule_expression(cls, rule_index, rule_expression):
-        data = cls.load_data()
+    def set_rule_expression(cls, rule_index, rule_expression, data_file):
+        data = cls.load_data(data_file)
         if data is not None and rule_index > -1 and isinstance(rule_expression, unicode):
             try:
                 data[cls._n][cls._r][rule_index]['expression'] = rule_expression
-                return NamingData.write_data(data)
+                return NamingData.write_data(data, data_file=data_file)
             except Exception:
                 pass
         return False
 
     @classmethod
-    def set_rule_description(cls, rule_index, rule_description):
-        data = cls.load_data()
+    def set_rule_description(cls, rule_index, rule_description, data_file):
+        data = cls.load_data(data_file)
         if data is not None and rule_index > -1 and isinstance(rule_description, unicode):
             try:
                 data[cls._n][cls._r][rule_index]['description'] = rule_description
-                return NamingData.write_data(data)
+                return NamingData.write_data(data, data_file=data_file)
             except Exception:
                 pass
         return False
 
     @classmethod
-    def set_rule_iterator_format(cls, rule_index, iterator_format):
-        data = cls.load_data()
+    def set_rule_iterator_format(cls, rule_index, iterator_format, data_file):
+        data = cls.load_data(data_file)
         if data is not None and rule_index > -1 and isinstance(iterator_format, unicode):
             try:
                 data[cls._n][cls._r][rule_index]['iterator_format'] = iterator_format
-                return NamingData.write_data(data)
+                return NamingData.write_data(data, data_file=data_file)
             except Exception:
                 pass
         return False
 
     @classmethod
-    def add_token(cls, token):
+    def add_token(cls, token, data_file):
 
         """
         Add a token to the list of tokens
@@ -1148,14 +1154,14 @@ class NamingData(object):
         :return: New Naming Manager data or False if the addition is not correct
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None and token is not None:
             data[cls._n][cls._t].append(token.data())
-            return cls.write_data(data)
+            return cls.write_data(data, data_file=data_file)
         return False
 
     @classmethod
-    def remove_token(cls, token_index):
+    def remove_token(cls, token_index, data_file):
 
         """
         Removes a token with a given index from the list of tokens
@@ -1163,17 +1169,17 @@ class NamingData(object):
         :return: New Naming Manager data or False if the deletion is not correct
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None and token_index > -1:
             try:
                 data[cls._n][cls._t].pop(token_index)
-                return cls.write_data(data)
+                return cls.write_data(data, data_file=data_file)
             except Exception:
                 pass
         return False
 
     @classmethod
-    def get_token(cls, token_index):
+    def get_token(cls, token_index, data_file):
 
         """
         Gets token by its index
@@ -1181,7 +1187,7 @@ class NamingData(object):
         :return: tpToken with that index
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None and token_index > -1:
             try:
                 token = data[cls._n][cls._t][token_index]
@@ -1191,14 +1197,14 @@ class NamingData(object):
         return None
 
     @classmethod
-    def get_tokens(cls):
+    def get_tokens(cls, data_file):
 
         """
         Get a list of all the tokens on the Naming manager data
         :return list(tpNamingManger.tpToken): List of tokens
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
 
         if data is not None:
             try:
@@ -1212,7 +1218,7 @@ class NamingData(object):
         return None
 
     @classmethod
-    def set_token_name(cls, token_index, token_name):
+    def set_token_name(cls, token_index, token_name, data_file):
 
         """
         Set the name of a token
@@ -1221,76 +1227,76 @@ class NamingData(object):
         :return str: Updated data or False if an error happens
         """
 
-        data = cls.load_data()
+        data = cls.load_data(data_file)
         if data is not None and token_index > -1 and isinstance(token_name, unicode):
             try:
                 data[cls._n][cls._t][token_index]['name'] = token_name
-                return NamingData.write_data(data)
+                return NamingData.write_data(data, data_file=data_file)
             except Exception:
                 pass
         return False
 
     @classmethod
-    def add_token_value(cls, token_index):
-        data = cls.load_data()
+    def add_token_value(cls, token_index, data_file):
+        data = cls.load_data(data_file)
         if data is not None and token_index > -1:
             keyData = data[cls._n][cls._t][token_index]['values']
             keyData[cls._k].append('New_Tag')
             keyData[cls._v].append('New_Value')
             data[cls._n][cls._t][token_index]['values'] = keyData
-            cls.write_data(data)
+            cls.write_data(data, data_file=data_file)
             return keyData
         return False
 
     @classmethod
-    def remove_token_value(cls, token_index, token_value_index):
-        data = cls.load_data()
+    def remove_token_value(cls, token_index, token_value_index, data_file):
+        data = cls.load_data(data_file)
         if data is not None and token_index > -1 and token_value_index > -1:
             keyData = data[cls._n][cls._t][token_index]['values']
             keyData[cls._k].pop(token_value_index)
             keyData[cls._v].pop(token_value_index)
             data[cls._n][cls._t][token_index]['values'] = keyData
-            cls.write_data(data)
+            cls.write_data(data, data_file=data_file)
             return keyData
         return False
 
     @classmethod
-    def set_default_token(cls, token_value_index, token_index):
-        data = cls.load_data()
+    def set_default_token(cls, token_value_index, token_index, data_file):
+        data = cls.load_data(data_file)
         if data is not None and token_value_index > -1 and token_index > -1:
             data[cls._n][cls._t][token_value_index]['default'] = token_index
-            return cls.write_data(data)
+            return cls.write_data(data, data_file=data_file)
         return False
 
     @classmethod
-    def get_default_index(cls, token_value_index):
-        data = cls.load_data()
+    def get_default_index(cls, token_value_index, data_file):
+        data = cls.load_data(data_file)
         if data is not None and token_value_index > -1:
             return data[cls._n][cls._t][token_value_index]['default']
         return None
 
     @classmethod
-    def set_token_key(cls, token_index, item_row, token_key):
-        data = cls.load_data()
+    def set_token_key(cls, token_index, item_row, token_key, data_file):
+        data = cls.load_data(data_file)
         if data is not None and token_index > -1 and item_row > -1 and isinstance(token_key, unicode):
             data[cls._n][cls._t][token_index]['values']['key'][item_row] = token_key
-            return cls.write_data(data)
+            return cls.write_data(data, data_file=data_file)
         return False
 
     @classmethod
-    def set_token_value(cls, token_index, item_row, token_value):
-        data = cls.load_data()
+    def set_token_value(cls, token_index, item_row, token_value, data_file):
+        data = cls.load_data(data_file)
         if data is not None and token_index > -1 and item_row > -1 and isinstance(token_value, unicode):
             data[cls._n][cls._t][token_index]['values']['value'][item_row] = token_value
-            return cls.write_data(data)
+            return cls.write_data(data, data_file=data_file)
         return False
 
     @classmethod
-    def set_token_description(cls, token_index, token_description):
-        data = cls.load_data()
+    def set_token_description(cls, token_index, token_description, data_file):
+        data = cls.load_data(data_file)
         if data is not None and token_index > -1 and isinstance(token_description, unicode):
             data[cls._n][cls._t][token_index]['description'] = token_description
-            return cls.write_data(data)
+            return cls.write_data(data, data_file=data_file)
         return False
 
 
