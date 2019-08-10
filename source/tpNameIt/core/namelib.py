@@ -8,7 +8,6 @@ Library module related with naming convention for the complete rigging toolkit
 from __future__ import print_function, division, absolute_import, unicode_literals
 
 
-# region Imports
 import copy
 import json
 import os
@@ -16,17 +15,12 @@ from collections import OrderedDict
 
 import tpNameIt as tp
 from tpPyUtils import strings as string_utils
-# endregion
 
 
-# region Constants
 _NAMING_REPO_ENV = 'NAMING_REPO'
-# endregion
 
-# region Global Variables
 _tokens = dict()
 _rules = {'_active': None}
-# endregion
 
 
 class Serializable(object):
@@ -67,7 +61,6 @@ class Token(Serializable, object):
         self._default = None
         self._items = dict()
 
-    # region Static Methods
     @staticmethod
     def is_iterator(name):
         """
@@ -79,9 +72,7 @@ class Token(Serializable, object):
         if '#' in name or '@' in name:
             return True
         return False
-    # endregion
 
-    # region Public Functions
     def name(self):
         """
         Returns the name of the token
@@ -426,7 +417,6 @@ def load_rule(filepath):
     return True
 
 
-# region Tokens
 def add_token(name, **kwargs):
     """
     Adds a new token to the tokens dictionary
@@ -517,10 +507,8 @@ def load_token(filepath):
     token = Token.from_data(data)
     _tokens[token.name()] = token
     return True
-# endregion
 
 
-# region Functions
 def solve(*args, **kwargs):
     """
     Solve the nomenclature using different techniques:
@@ -626,4 +614,3 @@ def load_session(repo=None):
         for k, v in config.items():
             globals()[k](v)
     return True
-# endregion

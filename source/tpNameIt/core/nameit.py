@@ -107,8 +107,8 @@ class NameIt(base.BaseWidget, object):
 
         return naming.active_rule()
 
-    @staticmethod
-    def set_active_rule(name):
+    @classmethod
+    def set_active_rule(cls, name):
         """
         Sets the current active rule
         :param name: str
@@ -119,13 +119,13 @@ class NameIt(base.BaseWidget, object):
         naming.remove_all_rules()
 
         # Load rules from the naming manager
-        rules = NamingData.get_rules(data_file=self.DATA_FILE)
+        rules = NamingData.get_rules(data_file=cls.DATA_FILE)
         for rule in rules:
             expressions = rule.get_expression_tokens()
             naming.add_rule(rule.name, rule.iterator_format, *expressions)
 
         # Load tokens from the naming manager
-        tokens = NamingData.get_tokens(data_file=self.DATA_FILE)
+        tokens = NamingData.get_tokens(data_file=cls.DATA_FILE)
         for token in tokens:
             tokens_keywords = token.get_values_as_keyword()
             naming.add_token(token.name, **tokens_keywords)
