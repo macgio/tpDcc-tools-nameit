@@ -816,9 +816,14 @@ class NameIt(base.BaseWidget, object):
         """
 
         if not os.path.isfile(self.DATA_FILE):
-            f = open(self.DATA_FILE, 'w')
-            f.close()
+            try:
+                f = open(self.DATA_FILE, 'w')
+                f.close()
+            except Exception:
+                pass
 
+        if not os.path.isfile(self.DATA_FILE):
+           return
 
         data = jsonio.read_file(self.DATA_FILE)
         if data is None:
