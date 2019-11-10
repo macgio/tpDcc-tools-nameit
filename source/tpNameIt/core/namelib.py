@@ -7,20 +7,20 @@ Library module related with naming convention for the complete rigging toolkit
 
 from __future__ import print_function, division, absolute_import, unicode_literals
 
-
+import os
+import re
 import copy
 import json
-import os
+import yaml
+import logging
+import lucidity
+import traceback
 from collections import OrderedDict
 
 import tpNameIt as tp
-from tpPyUtils import strings as string_utils
+from tpPyUtils import jsonio, yamlio, python, strings as string_utils, name as name_utils
 
-
-_NAMING_REPO_ENV = 'NAMING_REPO'
-
-_tokens = dict()
-_rules = {'_active': None}
+LOGGER = logging.getLogger()
 
 
 class Serializable(object):
@@ -37,16 +37,17 @@ class Serializable(object):
         return ret_val
 
     @classmethod
-    def from_data(cls, data):
+    def from_data(cls, data, skip_check=False):
 
-        # First of all, we have to validate the data
-        if data.get('_Serializable_classname') != cls.__name__:
-            return None
+        if not skip_check:
+            # First of all, we have to validate the data
+            if data.get('_Serializable_classname') != cls.__name__:
+                return None
 
-        # After the validation we delete validation property
-        del data['_Serializable_classname']
-        if data.get('_Serializable_version') is not None:
-            del data['_Serializable_version']
+            # After the validation we delete validation property
+            del data['_Serializable_classname']
+            if data.get('_Serializable_version') is not None:
+                del data['_Serializable_version']
 
         this = cls()
         this.__dict__.update(data)
@@ -55,11 +56,13 @@ class Serializable(object):
 
 class Token(Serializable, object):
 
-    def __init__(self, name):
+    def __init__(self, name='New_Token'):
         super(Token, self).__init__()
-        self._name = name
-        self._default = None
-        self._items = dict()
+        self.name = name
+        self.default = 0
+        self.values = {'key': [], 'value': []}
+        self.override_value = ""
+        self.description = None
 
     @staticmethod
     def is_iterator(name):
@@ -69,56 +72,80 @@ class Token(Serializable, object):
         :return: bool
         """
 
+        if not isinstance(name, (str, unicode)):
+            return False
+
         if '#' in name or '@' in name:
             return True
         return False
 
-    def name(self):
+    def get_items(self):
+        keys = self.values['key']
+        values = self.values['value']
+        items_dict = dict()
+        for i, key in enumerate(keys):
+            items_dict[key] = values[i]
+
+        return items_dict
+
+    def add_token_value(self):
         """
-        Returns the name of the token
+        Adds a new token value to the token
+        :return:
         """
 
-        return self._name
+        self.values['key'].append('New_Tag')
+        self.values['value'].append('New_Value')
 
-    def set_name(self, name):
-        """
-        Sets the name of the token
-        """
+        return self.values
 
-        self._name = name
-
-    def set_default(self, value):
+    def remove_token_value(self, value_index):
         """
-        Return the default item of the token
+        Removes a token value from the token
+        :return:
         """
 
-        self._default = value
+        self.values['key'].pop(value_index)
+        self.values['value'].pop(value_index)
 
-    def default(self):
-        """
-        Set the default item for the token
-        """
+        return self.values
 
-        # If there is not a default value defined and we have items in the token, we define the first item as default
-        if self._default is None and len(self._items):
-            self._default = self._items.values()[0]
-        return self._default
-
-    def add_item(self, name, value):
+    def set_token_key(self, item_row, token_key):
         """
-        Adds a new item to the token
+        Sets the token key of the token
+        :param item_row:
+        :param token_key:
+        :return:
         """
 
-        self._items[name] = value
+        if item_row > -1:
+            self.values['key'][item_row] = token_key
+
+    def set_token_value(self, item_row, token_value):
+        """
+        Sets the token key of the token
+        :param item_row:
+        :param token_value:
+        :return:
+        """
+
+        if item_row > -1:
+            self.values['value'][item_row] = token_value
 
     def is_required(self):
         """
         Return True if it is required to pass this token to solve the nomenclature
         """
 
-        return self.default() is None
+        default = self._get_default()
+        if default is None:
+            return True
 
-    def solve(self, name=None):
+        return False
+
+        # return self._get_default() is None
+
+    def solve(self, rule, name=None):
         """
         Solve the token | Fields -> Solved Name
         """
@@ -126,21 +153,21 @@ class Token(Serializable, object):
         # If we don't pass any name the token will be solved as the default item value
 
         if name is None:
-            if self.is_iterator(self.default()):
-                return self._get_default_iterator_value(0)
+            if self.is_iterator(self._get_default()):
+                return self._get_default_iterator_value(0, rule=rule)
             else:
-                return self.default()
+                return self._get_default()
 
-        if 'iterator' in self._items:
-            if name not in self._items:
-                return self._get_default_iterator_value(name)
+        if 'iterator' in self.get_items():
+            if name not in self.get_items():
+                return self._get_default_iterator_value(name, rule=rule)
             else:
                 return name
         else:
-            return self._items.get(name)
+            return self.get_items().get(name)
 
-    def _get_default_iterator_value(self, name):
-        iterator_format = active_rule().iterator_format()
+    def _get_default_iterator_value(self, name, rule):
+        iterator_format = rule.iterator_format()
         if '@' in iterator_format:
             return string_utils.get_alpha(name, capital=('^' in iterator_format))
         elif '#' in iterator_format:
@@ -152,51 +179,57 @@ class Token(Serializable, object):
 
         """ Parse a value taking in account the items of the token | Solved Name - Fields """
 
-        for k, v in self._items.items():
+        for k, v in self.get_items().items():
             if v == value:
                 return k
 
-    def save(self, file_path):
+    def save(self, file_path, parser_format='yaml'):
 
         """ Saves token to a file as JSON data """
-        file_path = os.path.join(file_path, self.name() + '.token')
+        file_path = os.path.join(file_path, self.name + '.token')
         if self.data():
             with open(file_path, 'w') as fp:
-                json.dump(self.data(), fp)
+                if parser_format == 'yaml':
+                    yaml.dump(self.data(), fp)
+                else:
+                    json.dump(self.data(), fp)
             return True
         return False
-    # endregion
+
+    def _get_default(self):
+        items = self.get_items()
+        if not items:
+            return None
+
+        if self.default is None and len(items):
+            self.default = self.get_items().values()[0]
+
+        return self.default
 
 
 class Rule(Serializable, object):
 
-    def __init__(self, name, iterator_format='@', auto_fix=False):
+    def __init__(self, name='New Rule', iterator_format='@', auto_fix=False):
         super(Rule, self).__init__()
-        self._name = name
-        self._auto_fix = auto_fix
-        self._iterator_format = iterator_format
-        self._fields = list()
-
-    def name(self):
-        """
-        Returns the name of the rule
-        """
-
-        return self._name
+        self.name = name
+        self.expression = None
+        self.description = None
+        self.auto_fix = auto_fix
+        self.iterator_format = iterator_format
 
     def fields(self):
         """
         Return a list of the fields of the rule
         """
 
-        return tuple(self._fields)
+        return re.findall(r"\{([^}]+)\}", re.sub('_', '_', self.expression))
 
     def iterator_format(self):
         """
         Returns iterator type for this rule
         """
 
-        return self._iterator_format
+        return self.iterator_format
 
     def auto_fix(self):
         """
@@ -204,7 +237,7 @@ class Rule(Serializable, object):
         :return: bool
         """
 
-        return self._auto_fix
+        return self.auto_fix
 
     def set_auto_fix(self, flag):
         """
@@ -212,15 +245,7 @@ class Rule(Serializable, object):
         :param flag: bool
         """
 
-        self._auto_fix = flag
-
-    def add_fields(self, token_names):
-        """
-        Adds new fields to the rule
-        """
-
-        self._fields.extend(token_names)
-        return True
+        self.auto_fix = flag
 
     def solve(self, **values):
         """
@@ -235,11 +260,11 @@ class Rule(Serializable, object):
 
         # Get only valid pattern values (we don't use None values)
         valid_values = OrderedDict()
-        for field in self._fields:
+        for field in self.fields():
             for k, v in values.items():
                 if k == field:
                     if v is None:
-                        if self._auto_fix:
+                        if self.auto_fix:
                             continue
                         else:
                             tp.logger.warning('Missing field: "{}" when generating new name (None will be used instead)!'.format(k))
@@ -265,7 +290,7 @@ class Rule(Serializable, object):
 
             # Get current value and its respective token
             value = split_name[i]
-            token = _tokens[f]
+            token = self._tokens[f]
 
             if token.is_required():
                 # We are in a required field, and we simply return the value from the split name
@@ -273,11 +298,11 @@ class Rule(Serializable, object):
                 continue
 
             # Else, we parse the token directly
-            ret_val[f] = token.parse(value)
+            ret_val[f] = token.parse(rule=self, name=value)
 
         return ret_val
 
-    def save(self, file_path):
+    def save(self, file_path, parser_format='yaml'):
         """
         Saves rule to a file as JSON data
         """
@@ -285,7 +310,10 @@ class Rule(Serializable, object):
         file_path = os.path.join(file_path, self.name() + '.rule')
         if self.data():
             with open(file_path, 'w') as fp:
-                json.dump(self.data(), fp)
+                if parser_format == 'yaml':
+                    yaml.dump(self.data(), fp)
+                else:
+                    json.dump(self.data(), fp)
             return True
         return False
 
@@ -300,317 +328,875 @@ class Rule(Serializable, object):
         return "{{{}}}".format("}_{".join(fields))
 
 
+class Template(Serializable, object):
+    """
+    Class that defines a template in the naming manager
+    Is stores naming patterns for files
+    """
+
+    def __init__(self, name='New_Template', pattern=''):
+        self.name = name
+        self.pattern = pattern
+
+    def parse(self, path_to_parse):
+        """
+        Parses given path
+        :param path_to_parse: str
+        :return: list(str)
+        """
+
+        try:
+            temp = lucidity.Template(self.name, self.pattern)
+            return temp.parse(path_to_parse)
+        except Exception:
+            LOGGER.warning(
+                'Given Path: {} does not match template pattern: {} | {}!'.format(
+                    path_to_parse, self.name, self.pattern))
+            return None
+
+    def format(self, template_data):
+        """
+        Returns proper path with the given dict data
+        :param template_data: dict(str, str)
+        :return: str
+        """
+
+        temp = lucidity.Template(self.name, self.pattern)
+        return temp.format(template_data)
+
+
+class TemplateToken(Serializable, object):
+    """
+    Class that defines a template token in the naming manager
+    """
+
+    def __init__(self, name='New_Template_Token', description=''):
+        self.name = name
+        self.description = description
+
 # ======================= RULES ======================= #
 
-def add_rule(name, iterator_type='@', *fields):
-    """
-    Adds a new rule to the rules dictionary
-    """
 
-    rule = Rule(name, iterator_type)
-    rule.add_fields(fields)
-    _rules[name] = rule
-    if active_rule() is None:
-        set_active_rule(name)
-    return rule
+class NameLib(object):
 
+    DEFAULT_DATA = {
+        "rules": [],
+        "tokens": [],
+        "template_tokens": [],
+        "templates": []
+    }
 
-def has_rule(name):
-    """
-    Get True if a rule its in the curret rules list
-    """
+    _active_rule = ''
 
-    return name in _rules.keys()
+    _templates = list()
+    _templates_tokens = list()
+    _tokens = list()
+    _rules = list()
 
+    _tokens_key = 'tokens'
+    _rules_key = 'rules'
+    _keys_key = 'key'
+    _values_key = 'value'
+    _templates_key = 'templates'
+    _template_tokens_key = 'template_tokens'
 
-def remove_rule(name):
-    """
-    Removes a rule, if exists, from the current rules list
-    """
+    def __init__(self):
+        self._naming_repo_env = 'NAMING_REPO'
+        self._parser_format = 'yaml'
+        self._naming_file = None
 
-    if has_rule(name):
-        del _rules[name]
+    @property
+    def naming_file(self):
+        return self._naming_file
+
+    @naming_file.setter
+    def naming_file(self, naming_file_path):
+        self._naming_file = naming_file_path
+
+    @property
+    def parser_format(self):
+        return self._parser_format
+
+    @parser_format.setter
+    def parser_format(self, parser_str):
+        self._parser_format = parser_str
+
+    @property
+    def naming_repo_env(self):
+        return self._naming_repo_env
+
+    @naming_repo_env.setter
+    def naming_repo_env(self, value):
+        self._naming_repo_env = value
+
+    @property
+    def rules(self):
+        return self._rules
+
+    @property
+    def tokens(self):
+        return self._tokens
+
+    @property
+    def templates(self):
+        return self._templates
+
+    @property
+    def template_tokens(self):
+        return self._templates_tokens
+
+    def has_valid_naming_file(self):
+        """
+        Returns whether naming file is valid or not
+        :return: bool
+        """
+
+        return self._naming_file and os.path.isfile(self._naming_file)
+
+    def active_rule(self):
+        """
+        Return the current active rule
+        """
+
+        if not self.has_rule(self._active_rule):
+            return None
+
+        return self.get_rule(self._active_rule)
+
+    def set_active_rule(self, name):
+        """
+        Sets the current active rule
+        """
+
+        if not self.has_rule(name):
+            return False
+        self._active_rule = name
+
         return True
-    return False
 
-
-def remove_all_rules():
-    """
-    Deletes any rules saved previosluy
-    """
-
-    _rules.clear()
-    _rules['_active'] = None
-    return True
-
-
-def active_rule():
-    """
-    Return the current active rule
-    """
-
-    k = _rules['_active']
-
-    return _rules.get(str(k))
-
-
-def set_active_rule(name):
-    """
-    Sets the current active rule
-    """
-
-    if not has_rule(name):
-        return False
-    _rules['_active'] = name
-    return True
-
-
-def set_rule_auto_fix(name, flag):
-    """
-    Sets if given rule should fix its pattern automatically if necessary or not
-    :param name: str, name of the rule
-    :param flag: bool
-    """
-    if not has_rule(name):
-        return
-
-    _rules[name].set_auto_fix(flag)
-
-
-def get_rule(name):
-    """
-    Gets a rule from the dictionary of rules by its name
-    """
-
-    return _rules.get(name)
-
-
-def save_rule(name, filepath):
-    """
-    Saves a serialized rule in a JSON format file
-    """
-
-    rule = get_rule(name)
-    if not rule:
-        return False
-    with open(filepath, 'w') as fp:
-        json.dump(rule.data(), fp)
-    return True
-
-
-def load_rule(filepath):
-    """
-    Loads a serialized rule from a JSON and deserialize it and creates a new one
-    """
-
-    if not os.path.isfile(filepath):
-        return False
-    try:
-        with open(filepath) as fp:
-            data = json.load(fp)
-    except Exception:
-        return False
-
-    rule = Rule.from_data(data)
-    _rules[rule.name()] = rule
-
-    return True
-
-
-def add_token(name, **kwargs):
-    """
-    Adds a new token to the tokens dictionary
-    """
-
-    token = Token(name)
-    for k, v in kwargs.items():
-        # If there is a default value we set it
-        if k == 'default':
-            token.set_default(v)
-            continue
-        token.add_item(k, v)
-    _tokens[name] = token
-    return token
-
-
-def has_token(name):
-    """
-    Get True if a token its in the current tokens list
-    """
-
-    return name in _tokens.keys()
-
-
-def remove_token(name):
-    """
-    Removes a token, if exists, from the current tokens list
-    """
-
-    # If the token name exists in the tokens list ...
-    if has_token(name):
-        del _tokens[name]
-        return True
-    return False
-
-
-def remove_all_tokens():
-    """
-    Deletes any tokens saved previously
-    """
-
-    _tokens.clear()
-    return True
-
-
-def get_token(name):
-    """
-    Get a token from the dictionary of tokens by its name
-    """
-
-    return _tokens.get(name)
-
-
-def get_token_by_index(index):
-    """
-    Get a token from the dictionary of token by its index
-    """
-
-    return _tokens.values()[index]
-
-
-def save_token(name, filepath):
-    """
-    Saves a serialized token in a JSON format file
-    """
-
-    token = get_token(name)
-    if not token:
-        return False
-    with open(filepath, 'w') as fp:
-        json.dump(token.data(), fp)
-    return True
-
-
-def load_token(filepath):
-    """
-    Loads a serialized token from a JSON and deserialize it and creates a new one
-    """
-
-    if not os.path.isfile(filepath):
-        return False
-    try:
-        with open(filepath) as fp:
-            data = json.load(fp)
-    except Exception:
-        return False
-
-    token = Token.from_data(data)
-    _tokens[token.name()] = token
-    return True
-
-
-def solve(*args, **kwargs):
-    """
-    Solve the nomenclature using different techniques:
-        - Explicit Conversion
-        - Default Conversion
-        - Token Management
-    """
-
-    i = 0
-    values = dict()
-    rule = active_rule()
-
-    # Loop trough each field of the current active rule
-    for f in rule.fields():
-        # Get tpToken object from the dictionary of tokens
-        if _tokens.has_key(f):
-            token = _tokens[f]
-
-            if token.is_required():
-                # We are in a required token (a token is required if it does not has default value)
-                if kwargs.get(f) is not None:
-                    # If the field is in the keywords passed, we get its value
-                    values[f] = kwargs[f]
-                    continue
-                else:
-                    # Else, we get the passed argument (without using keyword)
-                    try:
-                        values[f] = args[i]
-                    except Exception:
-                        values[f] = None
-                    i += 1
-                    continue
-            # If all fails, we try to get the field for the token
-            values[f] = token.solve(kwargs.get(f))
-        else:
-            tp.logger.warning('Expression not valid: token {} not found in tokens list'.format(f))
+    def set_rule_auto_fix(self, name, flag):
+        """
+        Sets if given rule should fix its pattern automatically if necessary or not
+        :param name: str, name of the rule
+        :param flag: bool
+        """
+        if not self.has_rule(name):
             return
-    return rule.solve(**values)
+
+        self._rules[name].set_auto_fix(flag)
 
 
-def parse(name):
+    def has_rule(self, name):
+        """
+        Get True if a rule its in the curret rules list
+        """
 
-    """
-    Parse a current solved name and return its different fields (metadata information)
-        - Implicit Conversion
-    """
+        for rule in self._rules:
+            if rule.name == name:
+                return True
 
-    # Parse name comparing it with the active rule
-    rule = active_rule()
-    return rule.parse(name)
+        return False
 
+    def add_rule(self, name, iterator_type='@', *fields):
+        """
+        Adds a new rule to the rules dictionary
+        """
 
-def get_repo():
-    env_repo = os.environ.get(_NAMING_REPO_ENV)
-    local_repo = os.path.join(os.path.expanduser('~'), '.config', 'naming')
-    return env_repo, local_repo
+        name = self.get_rule_unique_name(name)
+        rule = Rule(name, iterator_type)
+        rule.add_fields(fields)
+        self._rules.append(rule)
+        if self.active_rule() is None:
+            self.set_active_rule(name)
+        return rule
 
+    def remove_rule(self, name):
+        """
+        Removes a rule, if exists, from the current rules list
+        """
 
-def save_session(repo=None):
+        if self.has_rule(name):
+            rule = self.get_rule(name)
+            self._rules.pop(self._rules.index(rule))
+            return True
+        return False
 
-    repo = repo or get_repo()
+    def remove_all_rules(self):
+        """
+        Deletes any rules saved previosluy
+        """
 
-    # Tokens and rules
-    for name, token in _tokens.items():
-        file_path = os.path.join(repo, name + '.token')
-        save_token(name, file_path)
+        python.clear_list(self._rules)
+        self._active_rule = None
+        return True
 
-    for name, rule in _rules.items():
-        if not isinstance(rule, Rule):
-            continue
-        file_path = os.path.join(repo, name + '.rule')
-        save_rule(name, file_path)
+    def get_rule(self, name):
+        """
+        Gets a rule from the dictionary of rules by its name
+        """
 
-    # Extra configuration
-    active = active_rule()
-    config = {'set_active_rule': active.name() if active else None}
-    file_path = os.path.join(repo, 'naming.conf')
-    with open(file_path, 'w') as fp:
-        json.dump(config, fp)
-    return True
+        for rule in self._rules:
+            if rule.name == name:
+                return rule
 
+        return None
 
-def load_session(repo=None):
+    def get_rule_unique_name(self, name):
+        """
+        Returns a unique name for the given rule name
+        :param name: str
+        :return: str
+        """
 
-    repo = repo or get_repo()
-    if not os.path.exists(repo):
-        os.mkdir(repo)
+        rule_names = [rule.name for rule in self._rules]
+        return name_utils.get_unique_name_from_list(rule_names, name)
 
-    # Tokens and rules
-    for dir_path, dir_names, file_names in os.walk(repo):
-        for file_name in file_names:
-            file_path = os.path.join(dir_path, file_name)
-            if file_name.endswith('.token'):
-                load_token(file_path)
-            elif file_name.endswith('.rule'):
-                load_rule(file_path)
+    def get_rule_by_index(self, index):
+        """
+        Get a rule from the dictionary of rule by its index
+        """
 
-    # Extra configuration
-    file_path = os.path.join(repo, 'naming.conf')
-    if os.path.exists(file_path):
-        with open(file_path) as fp:
-            config = json.load(fp)
-        for k, v in config.items():
-            globals()[k](v)
-    return True
+        return self._rules[index]
+
+    def add_token(self, name, **kwargs):
+        """
+        Adds a new token to the tokens dictionary
+        """
+
+        name = self.get_rule_unique_name(name)
+        token = Token(name)
+        for k, v in kwargs.items():
+            # If there is a default value we set it
+            if k == 'default':
+                token.default = v
+                continue
+        self._tokens.append(token)
+        return token
+
+    def has_token(self, name):
+        """
+        Get True if a token its in the current tokens list
+        """
+
+        for token in self._tokens:
+            if token.name == name:
+                return True
+
+        return False
+
+    def remove_token(self, name):
+        """
+        Removes a token, if exists, from the current tokens list
+        """
+
+        # If the token name exists in the tokens list ...
+        if self.has_token(name):
+            token = self.get_token(name)
+            self._tokens.pop(self._tokens.index(token))
+            return True
+        return False
+
+    def remove_all_tokens(self):
+        """
+        Deletes any tokens saved previously
+        """
+
+        python.clear_list(self._tokens)
+        return True
+
+    def get_token(self, name):
+        """
+        Get a token from the dictionary of tokens by its name
+        """
+
+        for token in self._tokens:
+            if token.name == name:
+                return token
+
+        return None
+
+    def get_token_unique_name(self, name):
+        """
+        Returns a unique name for the given token name
+        :param name: str
+        :return: str
+        """
+
+        token_names = [token.name for token in self._tokens]
+        return name_utils.get_unique_name_from_list(token_names, name)
+
+    def get_token_by_index(self, index):
+        """
+        Get a token from the dictionary of token by its index
+        """
+
+        return self._tokens[index]
+
+    def add_template(self, name, pattern=''):
+        """
+        Adds a new template
+        :param name: str
+        :param pattern: str
+        """
+
+        name = self.get_template_unique_name(name)
+        template = Template(name, pattern)
+        self._templates.append(template)
+
+        return template
+
+    def has_template(self, name):
+        """
+        Get True if a template its in the current tokens list
+        """
+
+        for template in self._templates:
+            if template.name == name:
+                return template
+
+        return None
+
+    def remove_template(self, name):
+        """
+        Removes a template, if exists, from the current tokens list
+        """
+
+        if self.has_template(name):
+            template = self.get_template(name)
+            self._templates.pop(self._templates.index(template))
+            return True
+        return False
+
+    def remove_all_templates(self):
+        """
+        Deletes any template saved previously
+        """
+
+        python.clear_list(self._templates)
+        return True
+
+    def get_template(self, name):
+        """
+        Get a template from the dictionary of templates by its name
+        """
+
+        for template in self._templates:
+            if template.name == name:
+                return template
+
+        return None
+
+    def get_template_unique_name(self, name):
+        """
+        Returns a unique name for the given template name
+        :param name: str
+        :return: str
+        """
+
+        template_names = [template.name for template in self._templates]
+        return name_utils.get_unique_name_from_list(template_names, name)
+
+    def get_template_by_index(self, index):
+        """
+        Get a template from the dictionary of token by its index
+        """
+
+        return self._templates[index]
+
+    def add_template_token(self, name, description=''):
+        """
+        Adds a new template
+        :param name: str
+        :param description: str
+        """
+
+        name = self.get_template_token_unique_name(name)
+        template = TemplateToken(name, description)
+        self._templates_tokens.append(template)
+
+        return template
+
+    def has_template_token(self, name):
+        """
+        Get True if a template token its in the current tokens list
+        """
+
+        for template_token in self._templates_tokens:
+            if template_token.name == name:
+                return True
+
+        return False
+
+    def remove_template_token(self, name):
+        """
+        Removes a template token, if exists, from the current tokens list
+        """
+
+        if self.has_template_token(name):
+            template_token = self.get_template_token(name)
+            self._templates_tokens.pop(self._templates_tokens.index(template_token))
+            return True
+        return False
+
+    def remove_all_template_tokens(self):
+        """
+        Deletes any template tokens saved previously
+        """
+
+        python.clear_list(self._templates_tokens)
+        return True
+
+    def get_template_token(self, name):
+        """
+        Get a template token from the dictionary of template tokens by its name
+        :param name: str
+        :return:
+        """
+
+        for template_token in self._templates_tokens:
+            if template_token.name == name:
+                return template_token
+
+        return None
+
+    def get_template_token_unique_name(self, name):
+        """
+        Returns a unique name for the given template token name
+        :param name: str
+        :return: str
+        """
+
+        template_token_names = [template_token.name for template_token in self._templates_tokens]
+        return name_utils.get_unique_name_from_list(template_token_names, name)
+
+    def get_template_token_by_index(self, index):
+        """
+        Get a template token from the dictionary of token by its index
+        """
+
+        return self._templates_tokens[index]
+
+    def solve(self, *args, **kwargs):
+        """
+        Solve the nomenclature using different techniques:
+            - Explicit Conversion
+            - Default Conversion
+            - Token Management
+        """
+
+        i = 0
+        values = dict()
+        rule = self.active_rule()
+
+        # Loop trough each field of the current active rule
+        for f in rule.fields():
+            # Get tpToken object from the dictionary of tokens
+            if self.has_token(f):
+                token = self.get_token(f)
+
+                if token.is_required():
+                    # We are in a required token (a token is required if it does not has default value)
+                    if kwargs.get(f) is not None:
+                        # If the field is in the keywords passed, we get its value
+                        values[f] = kwargs[f]
+                        continue
+                    else:
+                        # Else, we get the passed argument (without using keyword)
+                        try:
+                            values[f] = args[i]
+                        except Exception:
+                            values[f] = None
+                        i += 1
+                        continue
+                # If all fails, we try to get the field for the token
+                values[f] = token.solve(rule, kwargs.get(f))
+            else:
+                tp.logger.warning('Expression not valid: token {} not found in tokens list'.format(f))
+                return
+        return rule.solve(**values)
+
+    def parse(self, name):
+        """
+        Parse a current solved name and return its different fields (metadata information)
+            - Implicit Conversion
+        """
+
+        # Parse name comparing it with the active rule
+        rule = self.active_rule()
+        return rule.parse(name)
+
+    def init_naming_data(self):
+        if not self.has_valid_naming_file():
+            try:
+                f = open(self._naming_file, 'w')
+                f.close()
+            except Exception:
+                pass
+
+        if not self.has_valid_naming_file():
+            LOGGER.warning('Impossible to initialize naming data because naming file: "{}" does not exists!'.format(
+                self._naming_file
+            ))
+            return None
+
+        if self._parser_format == 'yaml':
+            data = yamlio.read_file(self.naming_file)
+        else:
+            data = jsonio.read_file(self._naming_file)
+        if not data:
+            data = self.DEFAULT_DATA
+            if self._parser_format == 'yaml':
+                print('Storing default data: {}'.format(data))
+                yamlio.write_to_file(data, self._naming_file)
+            else:
+                jsonio.write_to_file(data, self._naming_file)
+        else:
+            self.load_session()
+
+        return None
+
+    def get_naming_data(self):
+        """
+        Returns a dictionary containing current naming data
+        :return: dict
+        """
+
+        rules = list()
+        tokens = list()
+        templates = list()
+        template_tokens = list()
+
+        for rule in self.rules:
+            rules.append(rule.data())
+
+        for token in self.tokens:
+            tokens.append(token.data())
+
+        for template in self.templates:
+            templates.append(template.data())
+
+        for template_token in self.template_tokens:
+            template_tokens.append(template_token.data())
+
+        return {
+            'active_rule': self._active_rule,
+            'rules': rules,
+            'tokens': tokens,
+            'template_tokens': template_tokens,
+            'templates': templates
+        }
+
+    def load_naming_data(self):
+        """
+        Loads data contained in wrapped naming file
+        :return: dict
+        """
+
+        if not self.has_valid_naming_file():
+            LOGGER.warning(
+                'Impossible to read naming file because naming file: "{}" does not exists!'.format(self._naming_file))
+            return None
+
+        try:
+            if self._parser_format == 'yaml':
+                data = yamlio.read_file(self._naming_file)
+            else:
+                data = jsonio.read_file(self._naming_file)
+            return data
+        except Exception as exc:
+            LOGGER.error(
+                'Impossible to read naming file "{}": {} | {}'.format(self._naming_file, exc, traceback.format_exc()))
+
+        return None
+
+    def save_naming_data(self, data):
+        """
+        Saves data into the wrapped naming file
+        """
+
+        if not self.has_valid_naming_file():
+            LOGGER.warning(
+                'Impossible to save naming file because naming file: "{}" does not exists!'.format(self._naming_file))
+            return None
+
+        try:
+            if self._parser_format == 'yaml':
+                yamlio.write_to_file(data, self._naming_file)
+            else:
+                jsonio.write_to_file(data, self._naming_file)
+        except Exception as exc:
+            LOGGER.error(
+                'Impossible to read naming file "{}": {} | {}'.format(self._naming_file, exc, traceback.format_exc()))
+
+    # def save_rule(self, name, filepath):
+    #     """
+    #     Saves a serialized rule in a JSON format file
+    #     """
+    #
+    #     rule = self.get_rule(name)
+    #     if not rule:
+    #         return False
+    #     with open(filepath, 'w') as fp:
+    #         if self._parser_format == 'yaml':
+    #             yaml.dump(rule.data(), fp)
+    #         else:
+    #             json.dump(rule.data(), fp)
+    #     return True
+
+    def load_rule(self, filepath, skip_check=False):
+        """
+        Loads a serialized rule from a JSON and deserialize it and creates a new one
+        """
+
+        if not os.path.isfile(filepath):
+            return False
+        try:
+            with open(filepath) as fp:
+                if self._parser_format == 'yaml':
+                    data = yaml.safe_load(fp)
+                else:
+                    data = json.load(fp)
+        except Exception:
+            return False
+
+        return self.load_rule_from_dict(data, skip_check=skip_check)
+
+    def load_rule_from_dict(self, rule_dict, skip_check=False):
+        """
+        Loads a new rule from a given serialized dict
+        :param rule_dict: dict
+        :return: bool
+        """
+
+        rule = Rule.from_data(rule_dict, skip_check=skip_check)
+        self._rules.append(rule)
+
+        return True
+
+    # def save_token(self, name, filepath):
+    #     """
+    #     Saves a serialized token in a JSON format file
+    #     """
+    #
+    #     token = self.get_token(name)
+    #     if not token:
+    #         return False
+    #     with open(filepath, 'w') as fp:
+    #         if self._parser_format == 'yaml':
+    #             yaml.dump(token.data(), fp)
+    #         else:
+    #             json.dump(token.data(), fp)
+    #     return True
+
+    def load_token(self, filepath, skip_check=False):
+        """
+        Loads a serialized token from a JSON and deserialize it and creates a new one
+        """
+
+        if not os.path.isfile(filepath):
+            return False
+        try:
+            with open(filepath) as fp:
+                if self._parser_format == 'yaml':
+                    data = yaml.safe_load(fp)
+                else:
+                    data = json.load(fp)
+        except Exception:
+            return False
+
+        return self.load_token_from_dict(data, skip_check=skip_check)
+
+    def load_token_from_dict(self, token_dict, skip_check=False):
+        """
+        Loads a new token from a given serialized dict
+        :param token_dict: dict
+        :return: bool
+        """
+
+        token = Token.from_data(token_dict, skip_check=skip_check)
+        self._tokens.append(token)
+
+        return True
+
+    def load_template_from_dict(self, template_dict, skip_check=False):
+        """
+        Loads a new template from a given serialized dict
+        :param template_dict: dict
+        :return: bool
+        """
+
+        template = Template.from_data(template_dict, skip_check=skip_check)
+        self._templates.append(template)
+
+        return True
+
+    def load_template_token_from_dict(self, template_token_dict, skip_check=False):
+        """
+        Loads a new template token from a given serialized dict
+        :param template_token_dict: dict
+        :return: bool
+        """
+
+        template_token = TemplateToken.from_data(template_token_dict, skip_check=skip_check)
+        self._templates_tokens.append(template_token)
+
+        return True
+
+    def parse_template(self, template_name, path_to_parse):
+        """
+        Parses given path in the given template
+        :param template_name: str
+        :param path_to_parse: str
+        :return: list(str)
+        """
+
+        if not self.templates:
+            return False
+
+        for template in self.templates:
+            if template.name == template_name:
+                return template.parse(path_to_parse)
+
+        return None
+
+    def check_template_validity(self, template_name, path_to_check):
+        """
+        Returns whether given path matches given pattern or not
+        :param template_name: str
+        :param path_to_check: str
+        :return: bool
+        """
+
+        parse = self.parse_template(template_name, path_to_check)
+        if parse is not None and type(parse) is dict:
+            return True
+
+        return False
+
+    def format_template(self, template_name, template_tokens):
+        """
+        Returns template path filled with template tokens data
+        :param template_name: str
+        :param template_tokens: dict
+        :return: str
+        """
+
+        templates = self.templates
+        if not templates:
+            return False
+
+        for template in templates:
+            if template.name == template_name:
+                return template.format(template_tokens)
+
+        return None
+
+    def get_repo(self):
+        env_repo = os.environ.get(self._naming_repo_env)
+        local_repo = os.path.join(os.path.expanduser('~'), '.config', 'naming')
+        return env_repo, local_repo
+
+    def load_session(self, repo=None):
+
+        self._active_rule = ''
+        python.clear_list(self._rules)
+        python.clear_list(self._tokens)
+        python.clear_list(self._templates)
+        python.clear_list(self._templates_tokens)
+
+        if self.has_valid_naming_file():
+            LOGGER.info('Loading session from Naming File: {}'.format(self._naming_file))
+
+            naming_data = self.load_naming_data()
+            if not naming_data:
+                return
+
+            rules = naming_data.get(self._rules_key)
+            if rules:
+                for rule_data in rules:
+                    self.load_rule_from_dict(rule_data, skip_check=True)
+
+            tokens = naming_data.get(self._tokens_key)
+            if tokens:
+                for token_data in tokens:
+                    self.load_token_from_dict(token_data, skip_check=True)
+
+            templates = naming_data.get(self._templates_key)
+            if templates:
+                for template_data in templates:
+                    self.load_template_from_dict(template_data, skip_check=True)
+
+            template_tokens = naming_data.get(self._template_tokens_key)
+            if template_tokens:
+                for template_token_data in template_tokens:
+                    self.load_template_token_from_dict(template_token_data, skip_check=True)
+
+        else:
+            repo = repo or self.get_repo()
+            if not os.path.exists(repo):
+                os.mkdir(repo)
+
+            LOGGER.info('Loading session from directory files: {}'.format(repo))
+
+            # Tokens and rules
+            for dir_path, dir_names, file_names in os.walk(repo):
+                for file_name in file_names:
+                    file_path = os.path.join(dir_path, file_name)
+                    if file_name.endswith('.token'):
+                        self.load_token(file_path)
+                    elif file_name.endswith('.rule'):
+                        self.load_rule(file_path)
+
+            # Extra configuration
+            file_path = os.path.join(repo, 'naming.conf')
+            if os.path.exists(file_path):
+                with open(file_path) as fp:
+                    if self._parser_format == 'yaml':
+                        config = yaml.safe_load(fp)
+                    else:
+                        config = json.load(fp)
+                for k, v in config.items():
+                    globals()[k](v)
+            return True
+
+    def save_session(self, repo=None):
+
+        if self.has_valid_naming_file():
+            LOGGER.info('Saving session from Naming File: {}'.format(self._naming_file))
+
+            naming_data = self.get_naming_data()
+            if naming_data:
+                self.save_naming_data(naming_data)
+        else:
+
+            repo = repo or self.get_repo()
+
+            LOGGER.info('Saving session to directory: {}'.format(repo))
+
+            # Tokens and rules
+            for name, token in self._tokens.items():
+                file_path = os.path.join(repo, name + '.token')
+                self.save_token(name, file_path)
+
+            for name, rule in self._rules.items():
+                if not isinstance(rule, Rule):
+                    continue
+                file_path = os.path.join(repo, name + '.rule')
+                self.save_rule(name, file_path)
+
+            for name, template in self._templates.items():
+                if not isinstance(template, Template):
+                    continue
+                file_path = os.path.join(repo, name + '.template')
+                self.save_template(name, file_path)
+
+            # Extra configuration
+            active = self.active_rule()
+            config = {'set_active_rule': active.name() if active else None}
+            file_path = os.path.join(repo, 'naming.conf')
+            with open(file_path, 'w') as fp:
+                if self._parser_format == 'yaml':
+                    yaml.dump(config, fp)
+                else:
+                    json.dump(config, fp)
+            return True
