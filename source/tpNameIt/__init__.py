@@ -56,7 +56,7 @@ def init(do_reload=False):
     :param do_reload: bool, Whether to reload modules or not
     """
 
-    tpnameit_importer = importer.init_importer(importer_class=tpNameIt, do_reload=do_reload)
+    tpnameit_importer = importer.init_importer(importer_class=tpNameIt, do_reload=False)
 
     global logger
     global resource
@@ -65,6 +65,9 @@ def init(do_reload=False):
 
     tpnameit_importer.import_modules()
     tpnameit_importer.import_packages(only_packages=True)
+
+    if do_reload:
+        tpnameit_importer.reload_all()
 
 
 def run(do_reload=False):
