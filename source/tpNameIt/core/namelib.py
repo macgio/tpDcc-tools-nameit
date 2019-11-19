@@ -504,7 +504,7 @@ class NameLib(object):
 
         name = self.get_rule_unique_name(name)
         rule = Rule(name, iterator_type)
-        rule.add_fields(fields)
+        # rule.add_fields(fields)
         self._rules.append(rule)
         if self.active_rule() is None:
             self.set_active_rule(name)
