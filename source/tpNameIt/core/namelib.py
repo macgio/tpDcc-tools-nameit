@@ -82,7 +82,7 @@ class Token(Serializable, object):
     def get_items(self):
         keys = self.values['key']
         values = self.values['value']
-        items_dict = dict()
+        items_dict = OrderedDict()
         for i, key in enumerate(keys):
             items_dict[key] = values[i]
 
@@ -138,7 +138,7 @@ class Token(Serializable, object):
         """
 
         default = self._get_default()
-        if default is None:
+        if default is None or default == -1:
             return True
 
         return False
@@ -201,7 +201,7 @@ class Token(Serializable, object):
         if not items:
             return None
 
-        if self.default is None and len(items):
+        if items and python.is_number(self.default):
             self.default = self.get_items().values()[0]
 
         return self.default
