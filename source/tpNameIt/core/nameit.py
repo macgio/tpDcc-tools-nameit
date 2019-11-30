@@ -719,14 +719,16 @@ class NameIt(base.BaseWidget, object):
         if not template:
             return
 
+        temp_tokens = list()
         try:
-            temp = lucidity.Template(template.name, template.pattern)
-        except ValueError as exc:
+            temp = self.NAMING_LIB().get_template(template.name)
+            # temp = lucidity.Template(template.name, template.pattern)
+            temp_template = temp.template
+            temp_template.duplicate_placeholder_mode = lucidity.Template.STRICT
+            temp_tokens = temp_template.keys()
+        except (ValueError, lucidity.error.ResolveError) as exc:
             self._clear_template_tokens()
             return
-
-        temp.duplicate_placeholder_mode = temp.STRICT
-        temp_tokens = temp.keys()
 
         template_tokens = self.NAMING_LIB().template_tokens
 

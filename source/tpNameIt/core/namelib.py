@@ -25,10 +25,15 @@ LOGGER = logging.getLogger()
 
 class Serializable(object):
 
+    SKIP_ATTRIBUTES = list()
+
     def data(self):
         # We use copy.deepcopy because a dictionary in Python is a mutable type and we do not want
         # to change the dictionary outside this class
         ret_val = copy.deepcopy(self.__dict__)
+        for attr in self.SKIP_ATTRIBUTES:
+            if attr in ret_val:
+                ret_val.pop(attr)
 
         # We create some internal properties to validate the new instance
         ret_val['_Serializable_classname'] = type(self).__name__
@@ -334,9 +339,40 @@ class Template(Serializable, object):
     Is stores naming patterns for files
     """
 
+    SKIP_ATTRIBUTES = ['resolver']
+
     def __init__(self, name='New_Template', pattern=''):
         self.name = name
         self.pattern = pattern
+        self.resolver = None
+
+    @property
+    def template(self):
+        return self._create_template()
+
+    def keys(self):
+        """
+        Returns keys of the template
+        :return: list(str)
+        """
+
+        template = self.template
+        return template.keys() if template else list()
+
+    def set_resolver(self, resolver):
+        if not resolver:
+            return
+
+        self.resolver = resolver
+
+    def references(self):
+        """
+        Returns list of references of the template
+        :return: list(str)
+        """
+
+        template = self.template
+        return template.references() if template else list()
 
     def parse(self, path_to_parse):
         """
@@ -346,8 +382,10 @@ class Template(Serializable, object):
         """
 
         try:
-            temp = lucidity.Template(self.name, self.pattern)
-            return temp.parse(path_to_parse)
+            template = self.template
+            if self.resolver:
+                template.template_resolver = self.resolver
+            return template.parse(path_to_parse)
         except Exception:
             LOGGER.warning(
                 'Given Path: {} does not match template pattern: {} | {}!'.format(
@@ -361,8 +399,22 @@ class Template(Serializable, object):
         :return: str
         """
 
-        temp = lucidity.Template(self.name, self.pattern)
-        return temp.format(template_data)
+        template = self.template
+        if self.resolver:
+            template.template_resolver = self.resolver
+        return template.format(template_data)
+
+    def _create_template(self):
+        """
+        Internal function that creates the template with the stored data
+        :return: lucidity.Template
+        """
+
+        template = lucidity.Template(self.name, self.pattern)
+        if self.resolver:
+            template.template_resolver = self.resolver
+
+        return template
 
 
 class TemplateToken(Serializable, object):
@@ -680,11 +732,23 @@ class NameLib(object):
         Get a template from the dictionary of templates by its name
         """
 
+        template_found = None
         for template in self._templates:
             if template.name == name:
-                return template
+                template_found = template
+                break
 
-        return None
+        if not template_found:
+            return None
+
+        resolver = dict()
+        for template in self._templates:
+            if template.name == name:
+                continue
+            resolver[template.name] = template.template
+        template_found.set_resolver(resolver)
+
+        return template_found
 
     def get_template_unique_name(self, name):
         """
