@@ -26,8 +26,8 @@ class tpNameItResource(resource_utils.Resource, object):
 
 
 class tpNameIt(importer.Importer, object):
-    def __init__(self):
-        super(tpNameIt, self).__init__(module_name='tpNameIt')
+    def __init__(self, *args, **kwargs):
+        super(tpNameIt, self).__init__(module_name='tpNameIt', *args, **kwargs)
 
     def get_module_path(self):
         """
