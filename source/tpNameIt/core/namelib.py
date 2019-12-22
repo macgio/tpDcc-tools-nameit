@@ -155,8 +155,10 @@ class Token(Serializable, object):
         Solve the token | Fields -> Solved Name
         """
 
-        # If we don't pass any name the token will be solved as the default item value
+        if self.name == 'rule_name':
+            return rule.name
 
+        # If we don't pass any name the token will be solved as the default item value
         if name is None:
             if self.is_iterator(self._get_default()):
                 return self._get_default_iterator_value(0, rule=rule)
@@ -172,7 +174,7 @@ class Token(Serializable, object):
             return self.get_items().get(name)
 
     def _get_default_iterator_value(self, name, rule):
-        iterator_format = rule.iterator_format()
+        iterator_format = rule.iterator_format
         if '@' in iterator_format:
             return string_utils.get_alpha(name, capital=('^' in iterator_format))
         elif '#' in iterator_format:
