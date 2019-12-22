@@ -328,7 +328,7 @@ class NameIt(base.BaseWidget, object):
         iterator_lbl = QLabel('Iterator:         ')
         self.iterator_cbx = QComboBox()
         self.iterator_cbx.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        for it_format in ['@', '@^', '#', '##', '###']:
+        for it_format in ['@', '@^', '#', '##', '###', '####', '#####']:
             self.iterator_cbx.addItem(it_format)
         iterator_layout.addWidget(iterator_lbl)
         iterator_layout.addWidget(self.iterator_cbx)
