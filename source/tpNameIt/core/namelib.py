@@ -209,7 +209,8 @@ class Token(Serializable, object):
             return None
 
         if items and python.is_number(self.default):
-            self.default = self.get_items().values()[0]
+            default_value = self.get_items().values()[self.default-1]
+            return default_value
 
         return self.default
 
@@ -539,7 +540,6 @@ class NameLib(object):
 
         self._rules[name].set_auto_fix(flag)
 
-
     def has_rule(self, name):
         """
         Get True if a rule its in the curret rules list
@@ -853,6 +853,9 @@ class NameLib(object):
         i = 0
         values = dict()
         rule = self.active_rule()
+        if not rule:
+            LOGGER.warning('Impossible to solve because no rule is activated!')
+            return
 
         # Loop trough each field of the current active rule
         for f in rule.fields():
@@ -881,6 +884,34 @@ class NameLib(object):
                 return
         return rule.solve(**values)
 
+    def parse_field_from_string(self, string_to_parse, field_name):
+        active_rule = self.active_rule()
+        if not active_rule:
+            return None
+
+        string_split = string_to_parse.split('_')
+        if len(string_split) <= 0:
+            return None
+
+        rule_fields = active_rule.fields()
+        if len(rule_fields) != len(string_split):
+            LOGGER.warning(
+                'Given string "{}" is not a valid name generated with current nomenclature rule: {}'.format(
+                    string_to_parse, active_rule.name()))
+            return None
+
+        found_index = -1
+        for rule_field in rule_fields:
+            if rule_field == field_name:
+                found_index += 1
+                break
+            found_index += 1
+
+        if found_index > -1:
+            return string_split[found_index]
+
+        return None
+
     def parse(self, name):
         """
         Parse a current solved name and return its different fields (metadata information)
@@ -892,6 +923,10 @@ class NameLib(object):
         return rule.parse(name)
 
     def init_naming_data(self):
+        """
+        Function that initializes naming data file
+        """
+
         if not self.has_valid_naming_file():
             try:
                 f = open(self._naming_file, 'w')
@@ -912,7 +947,6 @@ class NameLib(object):
         if not data:
             data = self.DEFAULT_DATA
             if self._parser_format == 'yaml':
-                print('Storing default data: {}'.format(data))
                 yamlio.write_to_file(data, self._naming_file)
             else:
                 jsonio.write_to_file(data, self._naming_file)
@@ -1175,6 +1209,7 @@ class NameLib(object):
 
             naming_data = self.load_naming_data()
             if not naming_data:
+                LOGGER.warning('No naming data found!')
                 return
 
             rules = naming_data.get(self._rules_key)

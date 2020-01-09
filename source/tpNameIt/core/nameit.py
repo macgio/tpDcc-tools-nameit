@@ -40,55 +40,11 @@ class NameItWindow(tpQtLib.Window, object):
             use_style=False
         )
 
-        # Setup ToolBar
-        self._setup_toolbar()
-
     def ui(self):
         super(NameItWindow, self).ui()
 
         self._name_it = NameIt()
         self.main_layout.addWidget(self._name_it)
-
-    def _setup_toolbar(self):
-        toolbar = self.add_toolbar('Main ToolBar')
-        toolbar.setMovable(True)
-        toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
-
-        if self._is_renamer_tool_available():
-            play_icon = tpNameIt.resource.icon('rename')
-            renamer_btn = QToolButton()
-            renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-            run_tasks_action = QAction(play_icon, 'Renamer', renamer_btn)
-            renamer_btn.setDefaultAction(run_tasks_action)
-            renamer_btn.clicked.connect(self._on_open_renamer_tool)
-            toolbar.addWidget(renamer_btn)
-        else:
-            toolbar.setVisible(False)
-
-    def _on_open_renamer_tool(self):
-        """
-        Internal function that is used by toolbar to open Renamer Tool
-        """
-
-        try:
-            import tpRenamer
-            tpRenamer.run(True)
-        except Exception:
-            tpNameIt.logger.warning('Renamer Tools is not available!')
-            return None
-
-    def _is_renamer_tool_available(self):
-        """
-        Returns whether or not tpRenamer tool is available or not
-        :return: bool
-        """
-
-        try:
-            import tpRenamer
-        except Exception:
-            return False
-
-        return True
 
 
 @decorators.Singleton
@@ -102,11 +58,10 @@ class NameIt(base.BaseWidget, object):
     NAMING_LIB = NameItLib
 
     def __init__(self, data_file=None, parent=None):
-
-        self._data_file = data_file if data_file and os.path.isfile(data_file) else self._get_default_data_file()
-        self.NAMING_LIB().naming_file = self._data_file
-
+        self._data_file = None
         super(NameIt, self).__init__(parent=parent)
+        if data_file:
+            self.set_data_file(data_file)
 
     @classmethod
     def get_active_rule(cls):
@@ -127,6 +82,8 @@ class NameIt(base.BaseWidget, object):
         # First, we clean the status of the naming library
         cls.NAMING_LIB().remove_all_tokens()
         cls.NAMING_LIB().remove_all_rules()
+
+        cls.NAMING_LIB().load_session()
 
         # Load rules from the naming manager
         rules = cls.NAMING_LIB().rules
@@ -157,35 +114,6 @@ class NameIt(base.BaseWidget, object):
         cls.NAMING_LIB().set_rule_auto_fix(active_rule.name(), auto_fix)
 
     @classmethod
-    def parse_field_from_string(cls, string_to_parse, field_name):
-        active_rule = cls.get_active_rule()
-        if not active_rule:
-            return None
-
-        string_split = string_to_parse.split('_')
-        if len(string_split) <= 0:
-            return None
-
-        rule_fields = active_rule.fields()
-        if len(rule_fields) != len(string_split):
-            tpNameIt.logger.warning(
-                'Given string "{}" is not a valid name generated with current nomenclature rule: {}'.format(
-                    string_to_parse, active_rule.name()))
-            return None
-
-        found_index = -1
-        for rule_field in rule_fields:
-            if rule_field == field_name:
-                found_index += 1
-                break
-            found_index += 1
-
-        if found_index > -1:
-            return string_split[found_index]
-
-        return None
-
-    @classmethod
     def solve(cls, *args, **kwargs):
         if len(args) > 0 and len(kwargs) > 0:
             return cls.NAMING_LIB().solve(*args, **kwargs)
@@ -197,6 +125,36 @@ class NameIt(base.BaseWidget, object):
 
     def ui(self):
         super(NameIt, self).ui()
+
+        toolbar = QToolBar('Main ToolBar')
+        toolbar.setMovable(True)
+        toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
+        self.main_layout.addWidget(toolbar)
+
+        refresh_icon = tpQtLib.resource.icon('refresh')
+        refresh_btn = QToolButton()
+        refresh_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        refresh_action = QAction(refresh_icon, 'Refresh', refresh_btn)
+        refresh_btn.setDefaultAction(refresh_action)
+        refresh_btn.clicked.connect(self._on_refresh)
+        toolbar.addWidget(refresh_btn)
+
+        save_icon = tpQtLib.resource.icon('save')
+        save_btn = QToolButton()
+        save_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        save_action = QAction(save_icon, 'Save', save_btn)
+        save_btn.setDefaultAction(save_action)
+        save_btn.clicked.connect(self._on_save)
+
+        toolbar.addWidget(save_btn)
+        if self._is_renamer_tool_available():
+            play_icon = tpNameIt.resource.icon('rename')
+            renamer_btn = QToolButton()
+            renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+            run_tasks_action = QAction(play_icon, 'Renamer', renamer_btn)
+            renamer_btn.setDefaultAction(run_tasks_action)
+            renamer_btn.clicked.connect(self._on_open_renamer_tool)
+            toolbar.addWidget(renamer_btn)
 
         base_layout = QHBoxLayout()
         base_layout.setContentsMargins(0,0,0,0)
@@ -476,6 +434,16 @@ class NameIt(base.BaseWidget, object):
         self.template_tokens_list.itemChanged.connect(self._on_edit_template_token_name)
         self.description_templates_token_text.textChanged.connect(self._on_edit_template_token_description)
 
+    def set_data_file(self, data_file):
+        """
+        Sets the data file used by the naming library
+        :param data_file: str
+        """
+
+        self._data_file = data_file if data_file and os.path.isfile(data_file) else self._get_default_data_file()
+        self.NAMING_LIB().naming_file = self._data_file
+        self._init_db()
+
     def add_expression(self, name):
 
         """
@@ -594,14 +562,6 @@ class NameIt(base.BaseWidget, object):
                 self.templates_widget.setEnabled(True)
                 self._update_template_tokens(template)
 
-    def _get_default_data_file(self):
-        """
-        Returns default path to nameit data file
-        :return: str
-        """
-
-        return os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'naming_data.json')
-
     def _init_db(self):
 
         """
@@ -617,11 +577,21 @@ class NameIt(base.BaseWidget, object):
         self._load_templates()
         self._load_template_tokens()
 
+    def _get_default_data_file(self):
+        """
+        Internal function that returns default path to nameing data file
+        :return: str
+        """
+
+        return os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), 'data', 'naming_data.json')
+
     def _load_rules(self):
 
         """
-        Load rules from data file
+        Internal function that load rules from data file
         """
+
+        self.rules_list.clear()
 
         rules = self.NAMING_LIB().rules
         if not rules:
@@ -640,6 +610,8 @@ class NameIt(base.BaseWidget, object):
         Load tokens from data file
         """
 
+        self.tokens_list.clear()
+
         tokens = self.NAMING_LIB().tokens
         if not tokens:
             return False
@@ -656,6 +628,7 @@ class NameIt(base.BaseWidget, object):
 
         try:
             templates = self.NAMING_LIB().templates
+            self.templates_list.clear()
             if templates is not None:
                 for template in templates:
                     self._on_add_template(template)
@@ -673,6 +646,7 @@ class NameIt(base.BaseWidget, object):
 
         try:
             template_tokens = self.NAMING_LIB().template_tokens
+            self.template_tokens_list.clear()
             if template_tokens is not None:
                 for template_token in template_tokens:
                     self._on_add_template_token(template_token)
@@ -962,8 +936,14 @@ class NameIt(base.BaseWidget, object):
             if token_item.listWidget().count() > 0:
                 token = self.NAMING_LIB().get_token(token_item.text())
                 if token:
-                    self.description_token_text.setText(token.description)
-                    self.default_cbx.setCurrentIndex(int(token.default))
+                    try:
+                        self.description_rule_text.blockSignals(True)
+                        self.default_cbx.blockSignals(True)
+                        self.description_token_text.setText(token.description)
+                        self.default_cbx.setCurrentIndex(int(token.default))
+                    finally:
+                        self.description_rule_text.blockSignals(False)
+                        self.default_cbx.blockSignals(False)
                     self.update_tokens_properties_state()
                     self.update_tokens_key_table()
                     self.update_default_token_list()
@@ -1261,6 +1241,46 @@ class NameIt(base.BaseWidget, object):
         template_token = self.NAMING_LIB().get_template_token(template_token_text)
         if template_token:
             template_token.description = self.description_templates_token_text.toPlainText().rstrip()
+
+    def _on_open_renamer_tool(self):
+        """
+        Internal function that is used by toolbar to open Renamer Tool
+        """
+
+        try:
+            import tpRenamer
+            tpRenamer.run(True)
+        except Exception:
+            tpNameIt.logger.warning('Renamer Tools is not available!')
+            return None
+
+    def _is_renamer_tool_available(self):
+        """
+        Returns whether or not tpRenamer tool is available or not
+        :return: bool
+        """
+
+        try:
+            import tpRenamer
+        except Exception:
+            return False
+
+        return True
+
+    def _on_refresh(self):
+        """
+        Internal function that is called when save button is pressed
+        """
+
+        self.NAMING_LIB().load_session()
+        self._init_data()
+
+    def _on_save(self):
+        """
+        Internal function that is called when save button is pressed
+        """
+
+        self.NAMING_LIB().save_session()
 
 
 class ValuesTableModel(QAbstractTableModel, object):
