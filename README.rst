@@ -31,7 +31,9 @@ Manual
 ~~~~~~~~~~~~~~~~~~~~~~
 
 1. Clone/Download tpNameIt dependencies Python packages and follow instructions to install them.
+
 2. Clone/Download tpNameIt anywhere in your PC (If you download the repo, you will need to extract the contents of the .zip file).
+
 3. Copy **tpNameIt** folder located inside **source** folder in a path added to **sys.path**
 
 Automatic
