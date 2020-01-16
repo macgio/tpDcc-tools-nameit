@@ -748,6 +748,11 @@ class NameLib(object):
             if template.name == name:
                 continue
             resolver[template.name] = template.template
+
+        for ref in template_found.references():
+            ref_template = self.get_template(ref)
+            resolver[ref] = ref_template.template
+
         template_found.set_resolver(resolver)
 
         return template_found
