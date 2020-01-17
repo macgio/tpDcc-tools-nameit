@@ -29,7 +29,6 @@ def init(do_reload=False, dev=False):
     # Load logger configuration
     logging.config.fileConfig(get_logging_config(), disable_existing_loggers=False)
 
-
     from tpPyUtils import importer
     from tpQtLib.core import resource as resource_utils
 
@@ -72,6 +71,27 @@ def init(do_reload=False, dev=False):
 
     if do_reload:
         tpnameit_importer.reload_all()
+
+
+def create_logger_directory():
+    """
+    Creates artellapipe logger directory
+    """
+
+    tpdcclib_importer = os.path.normpath(os.path.join(os.path.expanduser('~'), 'tpNameIt', 'logs'))
+    if not os.path.isdir(tpdcclib_importer):
+        os.makedirs(tpdcclib_importer)
+
+
+def get_logging_config():
+    """
+    Returns logging configuration file path
+    :return: str
+    """
+
+    create_logger_directory()
+
+    return os.path.normpath(os.path.join(os.path.dirname(__file__), '__logging__.ini'))
 
 
 def run(do_reload=False):
