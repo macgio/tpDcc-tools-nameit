@@ -1,8 +1,8 @@
 # ===================================================================
-# tpNameIt requirements file
+# tpDcc-libs-nameit requirements file
 # ===================================================================
 pyyaml
 lucidity
-tpPyUtils
-tpDccLib
-tpQtLib
+tpDcc-libs-python
+tpDcc-core
+tpDcc-libs-qt

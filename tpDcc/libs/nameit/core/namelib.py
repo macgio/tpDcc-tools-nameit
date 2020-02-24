@@ -12,15 +12,12 @@ import re
 import copy
 import json
 import yaml
-import logging
 import lucidity
 import traceback
 from collections import OrderedDict
 
 import tpNameIt as tp
-from tpPyUtils import jsonio, yamlio, python, strings as string_utils, name as name_utils
-
-LOGGER = logging.getLogger()
+from tpDcc.libs.python import jsonio, yamlio, python, strings as string_utils, name as name_utils
 
 
 class Serializable(object):
@@ -390,7 +387,7 @@ class Template(Serializable, object):
                 template.template_resolver = self.resolver
             return template.parse(path_to_parse)
         except Exception:
-            LOGGER.warning(
+            tp.logger.warning(
                 'Given Path: {} does not match template pattern: {} | {}!'.format(
                     path_to_parse, self.name, self.pattern))
             return None
@@ -859,7 +856,7 @@ class NameLib(object):
         values = dict()
         rule = self.active_rule()
         if not rule:
-            LOGGER.warning('Impossible to solve because no rule is activated!')
+            tp.logger.warning('Impossible to solve because no rule is activated!')
             return
 
         # Loop trough each field of the current active rule
@@ -900,7 +897,7 @@ class NameLib(object):
 
         rule_fields = active_rule.fields()
         if len(rule_fields) != len(string_split):
-            LOGGER.warning(
+            tp.logger.warning(
                 'Given string "{}" is not a valid name generated with current nomenclature rule: {}'.format(
                     string_to_parse, active_rule.name()))
             return None
@@ -940,7 +937,7 @@ class NameLib(object):
                 pass
 
         if not self.has_valid_naming_file():
-            LOGGER.warning('Impossible to initialize naming data because naming file: "{}" does not exists!'.format(
+            tp.logger.warning('Impossible to initialize naming data because naming file: "{}" does not exists!'.format(
                 self._naming_file
             ))
             return None
@@ -998,7 +995,7 @@ class NameLib(object):
         """
 
         if not self.has_valid_naming_file():
-            LOGGER.warning(
+            tp.logger.warning(
                 'Impossible to read naming file because naming file: "{}" does not exists!'.format(self._naming_file))
             return None
 
@@ -1009,7 +1006,7 @@ class NameLib(object):
                 data = jsonio.read_file(self._naming_file)
             return data
         except Exception as exc:
-            LOGGER.error(
+            tp.logger.error(
                 'Impossible to read naming file "{}": {} | {}'.format(self._naming_file, exc, traceback.format_exc()))
 
         return None
@@ -1020,7 +1017,7 @@ class NameLib(object):
         """
 
         if not self.has_valid_naming_file():
-            LOGGER.warning(
+            tp.logger.warning(
                 'Impossible to save naming file because naming file: "{}" does not exists!'.format(self._naming_file))
             return None
 
@@ -1030,7 +1027,7 @@ class NameLib(object):
             else:
                 jsonio.write_to_file(data, self._naming_file)
         except Exception as exc:
-            LOGGER.error(
+            tp.logger.error(
                 'Impossible to read naming file "{}": {} | {}'.format(self._naming_file, exc, traceback.format_exc()))
 
     # def save_rule(self, name, filepath):
@@ -1210,11 +1207,11 @@ class NameLib(object):
         python.clear_list(self._templates_tokens)
 
         if self.has_valid_naming_file():
-            LOGGER.info('Loading session from Naming File: {}'.format(self._naming_file))
+            tp.logger.info('Loading session from Naming File: {}'.format(self._naming_file))
 
             naming_data = self.load_naming_data()
             if not naming_data:
-                LOGGER.warning('No naming data found!')
+                tp.logger.warning('No naming data found!')
                 return
 
             rules = naming_data.get(self._rules_key)
@@ -1242,7 +1239,7 @@ class NameLib(object):
             if not os.path.exists(repo):
                 os.mkdir(repo)
 
-            LOGGER.info('Loading session from directory files: {}'.format(repo))
+            tp.logger.info('Loading session from directory files: {}'.format(repo))
 
             # Tokens and rules
             for dir_path, dir_names, file_names in os.walk(repo):
@@ -1268,7 +1265,7 @@ class NameLib(object):
     def save_session(self, repo=None):
 
         if self.has_valid_naming_file():
-            LOGGER.info('Saving session from Naming File: {}'.format(self._naming_file))
+            tp.logger.info('Saving session from Naming File: {}'.format(self._naming_file))
 
             naming_data = self.get_naming_data()
             if naming_data:
@@ -1277,7 +1274,7 @@ class NameLib(object):
 
             repo = repo or self.get_repo()
 
-            LOGGER.info('Saving session to directory: {}'.format(repo))
+            tp.logger.info('Saving session to directory: {}'.format(repo))
 
             # Tokens and rules
             for name, token in self._tokens.items():

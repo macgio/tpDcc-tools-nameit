@@ -1,3 +1,3 @@
-include tpNameIt/__logging__.ini
-include tpNameIt/resources/icons/color/*.*
-include tpNameIt/data/NAMING_FILE_IS_CREATED_HERE_BY_DEFAULT
+include tpDcc/libs/nameit/__logging__.ini
+include tpDcc/libs/nameit/resources/icons/color/*.*
+include tpDcc/libs/nameit/data/naming_data.yml

@@ -1,80 +1,25 @@
-tpNameIt
+tpDcc-libs-nameit
 ============================================================
-
-.. image:: https://img.shields.io/github/license/tpoveda/tpNameIt.svg
-    :target: https://github.com/tpoveda/tpPyUtils/blob/master/LICENSE
 
 Python module that manages the nomenclature of your pipelines:
 
 * Nomenclature is based on rules and tokens. Those can be setup in a per-project basis.
 * DCC agnostic way, the library works in any DCC supported by tpDccLib
 
-Dependencies
--------------------
+.. image:: https://travis-ci.com/tpDcc/tpDcc-libs-python.svg?branch=master&kill_cache=1
+    :target: https://travis-ci.com/tpDcc/tpDcc-libs-python
 
-* **tpPyUtils**: https://github.com/tpoveda/tpPyUtils
-* **tpDccLib**: https://github.com/tpoveda/tpDccLib
-* **tpQtLib**: https://github.com/tpoveda/tpQtLib
+.. image:: https://coveralls.io/repos/github/tpDcc/tpDcc-libs-python/badge.svg?branch=master&kill_cache=1
+    :target: https://coveralls.io/github/tpDcc/tpDcc-libs-python?branch=master
 
-Depending on the DCC you are going to use you will need to download and install one of the following repositories:
+.. image:: https://img.shields.io/badge/docs-sphinx-orange
+    :target: https://tpDcc.github.io/tpDcc-libs-python
 
-* **3ds Max**: https://github.com/tpoveda/tpMaxLib
-* **Maya**: https://github.com/tpoveda/tpMayaLib
-* **Houdini**: *Work in Progress*
-* **Nuke**: *Work in Progress*
-* **Blender**: *Work in Progress*
+.. image:: https://img.shields.io/github/license/tpDcc/tpDcc-libs-python
+    :target: https://github.com/tpDcc/tpDcc-libs-python/blob/master/LICENSE
 
-Installation
--------------------
+.. image:: https://img.shields.io/pypi/v/tpDcc-libs-python?branch=master&kill_cache=1
+    :target: https://pypi.org/project/tpDcc-libs-python
 
-Manual
-~~~~~~~~~~~~~~~~~~~~~~
-
-1. Clone/Download tpNameIt dependencies Python packages and follow instructions to install them.
-
-2. Clone/Download tpNameIt anywhere in your PC (If you download the repo, you will need to extract the contents of the .zip file).
-
-3. Copy **tpNameIt** folder located inside **source** folder in a path added to **sys.path**
-
-Automatic
-~~~~~~~~~~~~~~~~~~~~~~
-Automatic installation for tpNameIt is not finished yet.
-
-Usage
--------------------
-
-Initialization Code
-~~~~~~~~~~~~~~~~~~~~~~
-
-1. If you only want to use tpNameIt libraries functionality
-
-.. code-block:: python
-
-    import tpPyUtils
-    tpPyUtils.init()
-
-    import tpDccLib
-    tpDccLib.init()
-
-    import tpQtLib
-    tpQtLib.init()
-
-    import tpNameIt
-    tpNameIt.init()
-
-
-2. If you want to launch tpNameIt UI
-
-.. code-block:: python
-
-    import tpPyUtils
-    tpPyUtils.init()
-
-    import tpDccLib
-    tpDccLib.init()
-
-    import tpQtLib
-    tpQtLib.init()
-
-    import tpNameIt
-    tpNameIt.run()
+.. image:: https://img.shields.io/badge/code_style-pep8-blue
+    :target: https://www.python.org/dev/peps/pep-0008/

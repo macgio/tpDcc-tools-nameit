@@ -1,5 +1,5 @@
 from setuptools import setup
 
-from tpNameIt.__version__ import __version__
+from tpDcc.libs.nameit.__version__ import __version__
 
 setup()

@@ -19,16 +19,16 @@ from Qt.QtWidgets import *
 
 import lucidity
 
-import tpQtLib
-from tpQtLib.core import base
+import tpDcc
+from tpDcc.libs.python import decorators
+from tpDcc.libs.qt.core import base
+from tpDcc.libs.qt.widgets import splitters
 
 import tpNameIt
-from tpPyUtils import decorators
-from tpQtLib.widgets import splitters
 from tpNameIt.core import namelib
 
 
-class NameItWindow(tpQtLib.Window, object):
+class NameItWindow(tpDcc.Window, object):
     def __init__(self):
         super(NameItWindow, self).__init__(
             name='NamingManagerWindow',
@@ -131,7 +131,7 @@ class NameIt(base.BaseWidget, object):
         toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
         self.main_layout.addWidget(toolbar)
 
-        refresh_icon = tpQtLib.resource.icon('refresh')
+        refresh_icon = tpDcc.ResourcesMgr().icon('refresh')
         refresh_btn = QToolButton()
         refresh_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         refresh_action = QAction(refresh_icon, 'Refresh', refresh_btn)
@@ -139,7 +139,7 @@ class NameIt(base.BaseWidget, object):
         refresh_btn.clicked.connect(self._on_refresh)
         toolbar.addWidget(refresh_btn)
 
-        save_icon = tpQtLib.resource.icon('save')
+        save_icon = tpDcc.ResourcesMgr().resource.icon('save')
         save_btn = QToolButton()
         save_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         save_action = QAction(save_icon, 'Save', save_btn)
