@@ -1,8 +1,9 @@
 # ===================================================================
-# tpDcc-libs-nameit requirements file
+# tpDcc-tools-nameit requirements file
 # ===================================================================
 pyyaml
 lucidity
 tpDcc-libs-python
 tpDcc-core
 tpDcc-libs-qt
+tpDcc-libs-nameit

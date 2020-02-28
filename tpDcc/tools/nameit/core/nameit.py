@@ -24,8 +24,9 @@ from tpDcc.libs.python import decorators
 from tpDcc.libs.qt.core import base
 from tpDcc.libs.qt.widgets import splitters
 
-import tpNameIt
-from tpNameIt.core import namelib
+from tpDcc.libs.nameit.core import namelib
+
+logger = tpDcc.LogsMgr().get_logger('tpDcc-tools-nameit')
 
 
 class NameItWindow(tpDcc.Window, object):
@@ -148,7 +149,7 @@ class NameIt(base.BaseWidget, object):
 
         toolbar.addWidget(save_btn)
         if self._is_renamer_tool_available():
-            play_icon = tpNameIt.resource.icon('rename')
+            play_icon = tpDcc.ResourcesMgr().icon('rename')
             renamer_btn = QToolButton()
             renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
             run_tasks_action = QAction(play_icon, 'Renamer', renamer_btn)
@@ -634,7 +635,7 @@ class NameIt(base.BaseWidget, object):
                     self._on_add_template(template)
             return True
         except Exception as e:
-            tpNameIt.logger.error(
+            logger.error(
                 'Error while loading templates from: {} | {} | {}'.format(self.DATA_FILE, e, traceback.format_exc()))
 
         return False
@@ -652,7 +653,7 @@ class NameIt(base.BaseWidget, object):
                     self._on_add_template_token(template_token)
             return True
         except Exception as e:
-            tpNameIt.logger.error(
+            logger.error(
                 'Error while loading template tokens from: {} | {} | {}'.format(self.DATA_FILE, e, traceback.format_exc()))
 
         return False
@@ -1251,7 +1252,7 @@ class NameIt(base.BaseWidget, object):
             import tpRenamer
             tpRenamer.run(True)
         except Exception:
-            tpNameIt.logger.warning('Renamer Tools is not available!')
+            logger.warning('Renamer Tools is not available!')
             return None
 
     def _is_renamer_tool_available(self):
