@@ -26,6 +26,27 @@ class NameItTool(tool.DccTool, object):
     def __init__(self, *args, **kwargs):
         super(NameItTool, self).__init__(*args, **kwargs)
 
+    @classmethod
+    def config_dict(cls, file_name=None):
+        base_tool_config = tool.DccTool.config_dict(file_name=file_name)
+        tool_config = {
+            'name': 'NameIt',
+            'id': 'tpDcc-tools-nameit',
+            'icon': 'nameit',
+            'tooltip': 'Tool that manages the nomenclature of your pipelines',
+            'tags': ['tpDcc', 'dcc', 'tool', 'nomenclature', 'paths', 'nameit'],
+            'is_checkable': False,
+            'is_checked': False,
+            'menu_ui': {'label': 'Renamer', 'load_on_startup': False, 'color': '', 'background_color': ''},
+            'menu': [{'type': 'menu', 'children': [{'id': 'tpDcc-tools-nameit', 'type': 'tool'}]}],
+            'shelf': [
+                {'name': 'tpDcc', 'children': [{'id': 'tpDcc-tools-nameit', 'display_label': False, 'type': 'tool'}]}
+            ]
+        }
+        base_tool_config.update(tool_config)
+
+        return base_tool_config
+
     def launch(self, *args, **kwargs):
         return self.launch_frameless(*args, **kwargs)
 

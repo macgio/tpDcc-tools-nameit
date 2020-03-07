@@ -36,8 +36,7 @@ class NameIt(base.BaseWidget, object):
     def __init__(self, data_file=None, parent=None):
         self._data_file = None
         super(NameIt, self).__init__(parent=parent)
-        if data_file:
-            self.set_data_file(data_file)
+        self.set_data_file(data_file)
 
     @classmethod
     def get_active_rule(cls):
@@ -104,7 +103,7 @@ class NameIt(base.BaseWidget, object):
 
         toolbar = QToolBar('Main ToolBar')
         toolbar.setMovable(True)
-        toolbar.setAllowedAreas(Qt.TopDockWidgetArea | Qt.BottomDockWidgetArea)
+        toolbar.setAllowedAreas(Qt.TopToolBarArea | Qt.BottomToolBarArea)
         self.main_layout.addWidget(toolbar)
 
         refresh_icon = tpDcc.ResourcesMgr().icon('refresh')
@@ -121,16 +120,20 @@ class NameIt(base.BaseWidget, object):
         save_action = QAction(save_icon, 'Save', save_btn)
         save_btn.setDefaultAction(save_action)
         save_btn.clicked.connect(self._on_save)
-
         toolbar.addWidget(save_btn)
+
         if self._is_renamer_tool_available():
-            play_icon = tpDcc.ResourcesMgr().icon('rename')
+            rename_icon = tpDcc.ResourcesMgr().icon('rename')
             renamer_btn = QToolButton()
             renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-            run_tasks_action = QAction(play_icon, 'Renamer', renamer_btn)
+            run_tasks_action = QAction(rename_icon, 'Renamer', renamer_btn)
             renamer_btn.setDefaultAction(run_tasks_action)
             renamer_btn.clicked.connect(self._on_open_renamer_tool)
             toolbar.addWidget(renamer_btn)
+
+        self._name_file_line = QLineEdit()
+        self._name_file_line.setReadOnly(True)
+        toolbar.addWidget(self._name_file_line)
 
         base_layout = QHBoxLayout()
         base_layout.setContentsMargins(0,0,0,0)
@@ -546,6 +549,7 @@ class NameIt(base.BaseWidget, object):
 
         self.NAMING_LIB().init_naming_data()
         self._init_data()
+        self._name_file_line.setText(str(self.NAMING_LIB().naming_file))
 
     def _init_data(self):
         if self._load_rules():
@@ -1237,7 +1241,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         try:
-            import tpRenamer
+            import tpDcc.tools.renamer
         except Exception:
             return False
 
