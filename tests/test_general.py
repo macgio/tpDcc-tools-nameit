@@ -1,3 +1,10 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Module that contains tests for tpDcc-tools-nameit
+"""
+
 import pytest
 
 from tpDcc.tools.nameit import __version__
