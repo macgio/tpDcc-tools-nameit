@@ -136,7 +136,7 @@ class NameIt(base.BaseWidget, object):
         toolbar.addWidget(self._name_file_line)
 
         base_layout = QHBoxLayout()
-        base_layout.setContentsMargins(0,0,0,0)
+        base_layout.setContentsMargins(0, 0, 0, 0)
         base_layout.setSpacing(0)
         self.main_layout.addLayout(base_layout)
 
@@ -225,11 +225,14 @@ class NameIt(base.BaseWidget, object):
         templates_tokens_main_layout.addLayout(left_panel_buttons_layout_templates_tokens)
         self.add_template_token_btn = QPushButton('+')
         self.remove_template_token_btn = QPushButton('-')
-        left_panel_buttons_layout_templates_tokens.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
+        left_panel_buttons_layout_templates_tokens.addItem(
+            QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         left_panel_buttons_layout_templates_tokens.addWidget(self.add_template_token_btn)
-        left_panel_buttons_layout_templates_tokens.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
+        left_panel_buttons_layout_templates_tokens.addItem(
+            QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         left_panel_buttons_layout_templates_tokens.addWidget(self.remove_template_token_btn)
-        left_panel_buttons_layout_templates_tokens.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
+        left_panel_buttons_layout_templates_tokens.addItem(
+            QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         templates_tokens_tab.setLayout(templates_tokens_main_layout)
 
         # === PROPERTIES === #
@@ -633,7 +636,8 @@ class NameIt(base.BaseWidget, object):
             return True
         except Exception as e:
             logger.error(
-                'Error while loading template tokens from: {} | {} | {}'.format(self.DATA_FILE, e, traceback.format_exc()))
+                'Error while loading template tokens from: {} | {} | {}'.format(
+                    self.DATA_FILE, e, traceback.format_exc()))
 
         return False
 
