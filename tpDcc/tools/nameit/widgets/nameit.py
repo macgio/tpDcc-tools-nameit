@@ -830,7 +830,10 @@ class NameIt(base.BaseWidget, object):
         :return: None
         """
 
-        rule_name = self.rules_list.currentItem().text()
+        selected_rule = self.rules_list.currentItem()
+        if not selected_rule:
+            return
+        rule_name = selected_rule.text()
         rule = self.NAMING_LIB().get_rule(rule_name)
         if rule:
             rule.expression = self.expression_line.text()
@@ -1232,10 +1235,9 @@ class NameIt(base.BaseWidget, object):
         """
 
         try:
-            import tpRenamer
-            tpRenamer.run(True)
+            tpDcc.ToolsMgr().launch_tool_by_id('tpDcc-tools-renamer', do_reload=False)
         except Exception:
-            logger.warning('Renamer Tools is not available!')
+            logger.warning('tpDcc-tools-renamer is not available!')
             return None
 
     def _is_renamer_tool_available(self):
