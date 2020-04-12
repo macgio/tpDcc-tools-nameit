@@ -21,7 +21,7 @@ import lucidity
 
 import tpDcc
 from tpDcc.libs.qt.core import base
-from tpDcc.libs.qt.widgets import splitters
+from tpDcc.libs.qt.widgets import dividers
 
 from tpDcc.tools.nameit.core import lib
 
@@ -347,7 +347,7 @@ class NameIt(base.BaseWidget, object):
         pattern_layout.addWidget(pattern_lbl)
         pattern_layout.addWidget(self.pattern_line)
         templates_layout.addLayout(pattern_layout)
-        templates_layout.addLayout(splitters.SplitterLayout())
+        templates_layout.addLayout(dividers.DividerLayout())
         self.template_tokens_layout = QGridLayout()
         self.template_tokens_layout.setAlignment(Qt.AlignTop)
         template_tokens_frame = QFrame()
