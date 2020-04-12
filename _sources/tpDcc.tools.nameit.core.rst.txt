@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    tpDcc.tools.nameit.core.lib
    tpDcc.tools.nameit.core.nameit
