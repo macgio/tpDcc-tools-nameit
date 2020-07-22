@@ -18,9 +18,6 @@ from tpDcc.libs.qt.widgets import toolset
 # Defines ID of the tool
 TOOL_ID = 'tpDcc-tools-nameit'
 
-# We skip the reloading of this module when launching the tool
-no_reload = True
-
 
 class NameItTool(tool.DccTool, object):
     def __init__(self, *args, **kwargs):

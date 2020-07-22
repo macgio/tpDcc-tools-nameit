@@ -2,7 +2,6 @@
 # tpDcc-tools-nameit requirements file
 # ===================================================================
 pyyaml
-lucidity
 tpDcc-libs-python
 tpDcc-core
 tpDcc-libs-qt

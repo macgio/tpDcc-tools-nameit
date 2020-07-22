@@ -17,13 +17,12 @@ from functools import partial
 from Qt.QtCore import *
 from Qt.QtWidgets import *
 
-import lucidity
-
 import tpDcc
 from tpDcc.libs.qt.core import base
 from tpDcc.libs.qt.widgets import dividers
 
 from tpDcc.tools.nameit.core import lib
+from tpDcc.libs.nameit.externals import lucidity
 
 logger = tpDcc.LogsMgr().get_logger('tpDcc-tools-nameit')
 
@@ -268,7 +267,7 @@ class NameIt(base.BaseWidget, object):
         iterator_lbl = QLabel('Iterator:         ')
         self.iterator_cbx = QComboBox()
         self.iterator_cbx.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        for it_format in ['@', '@^', '#', '##', '###', '####', '#####']:
+        for it_format in ['@', '@^', '#', '##', '###', '####', '#####', 'None']:
             self.iterator_cbx.addItem(it_format)
         iterator_layout.addWidget(iterator_lbl)
         iterator_layout.addWidget(self.iterator_cbx)
@@ -857,7 +856,11 @@ class NameIt(base.BaseWidget, object):
         :return: None
         """
 
-        rule_name = self.rules_list.currentItem().text()
+        rule_item = self.rules_list.currentItem()
+        if not rule_item:
+            return
+
+        rule_name = rule_item.text()
         rule = self.NAMING_LIB().get_rule(rule_name)
         if rule:
             rule.iterator_format = self.iterator_cbx.itemText(iterator_index)
