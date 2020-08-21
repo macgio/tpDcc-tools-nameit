@@ -1,8 +1,5 @@
 # ===================================================================
 # tpDcc-tools-nameit requirements file
 # ===================================================================
-pyyaml
-tpDcc-libs-python
-tpDcc-core
-tpDcc-libs-qt
-tpDcc-libs-nameit
+tpDcc-libs-qt==0.0.17
+tpDcc-libs-nameit==0.0.7
