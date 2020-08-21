@@ -243,13 +243,13 @@ class NameIt(base.BaseWidget, object):
         main_group.setLayout(self.group_layout)
 
         # Rules Panel
-        self.rules_widget = QWidget()
+        self.rules_widget = QWidget(self)
         rules_layout = QVBoxLayout()
         self.rules_widget.setLayout(rules_layout)
         expression_layout = QHBoxLayout()
         expression_layout.setContentsMargins(5, 5, 5, 5)
         expression_layout.setSpacing(5)
-        expression_lbl = QLabel('Expression:  ')
+        expression_lbl = QLabel('Expression:  ', self)
         self.expression_line = QLineEdit()
         self.expression_btn = QPushButton('   <')
         self.expression_btn.setEnabled(False)

@@ -58,5 +58,5 @@ class NameItToolset(toolset.ToolsetWidget, object):
 
         from tpDcc.tools.nameit.widgets import nameit
 
-        name_it = nameit.NameIt()
+        name_it = nameit.NameIt(parent=self)
         return [name_it]
