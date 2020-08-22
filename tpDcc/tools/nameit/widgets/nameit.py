@@ -30,9 +30,9 @@ logger = tpDcc.LogsMgr().get_logger('tpDcc-tools-nameit')
 class NameIt(base.BaseWidget, object):
 
     ACTIVE_RULE = None
-    NAMING_LIB = lib.NameItLib
 
-    def __init__(self, data_file=None, parent=None):
+    def __init__(self, naming_lib, data_file=None, parent=None):
+        self._naming_lib = naming_lib
         self._data_file = None
         super(NameIt, self).__init__(parent=parent)
         self.set_data_file(data_file)
@@ -422,7 +422,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         self._data_file = data_file if data_file and os.path.isfile(data_file) else self._get_default_data_file()
-        self.NAMING_LIB().naming_file = self._data_file
+        self._naming_lib.naming_file = self._data_file
         self._init_db()
 
     def add_expression(self, name):
@@ -448,7 +448,7 @@ class NameIt(base.BaseWidget, object):
         # First, we clear the expression menu
         self.expression_menu.clear()
 
-        tokens = self.NAMING_LIB().tokens
+        tokens = self._naming_lib.tokens
         if tokens and len(tokens) > 0:
             self.expression_btn.setEnabled(True)
             for token in tokens:
@@ -469,7 +469,7 @@ class NameIt(base.BaseWidget, object):
             self.iterator_cbx.setCurrentIndex(0)
             self.rules_widget.setEnabled(False)
         else:
-            rule = self.NAMING_LIB().get_rule(self.rules_list.currentItem().text())
+            rule = self._naming_lib.get_rule(self.rules_list.currentItem().text())
             if rule is not None:
                 self.expression_line.setText(rule.expression)
                 self.description_rule_text.setText(rule.description)
@@ -491,14 +491,14 @@ class NameIt(base.BaseWidget, object):
 
         item_text = self.tokens_list.currentItem().text()
         self.default_cbx.addItem('')
-        tokens = self.NAMING_LIB().tokens
+        tokens = self._naming_lib.tokens
         for token in tokens:
             if token.name != item_text:
                 continue
             for value in token.values['key']:
                 self.default_cbx.addItem(value)
 
-        token = self.NAMING_LIB().get_token(item_text)
+        token = self._naming_lib.get_token(item_text)
         if token:
             self.default_cbx.setCurrentIndex(token.default)
 
@@ -511,7 +511,7 @@ class NameIt(base.BaseWidget, object):
         if self.tokens_list.count() > 0:
             keys = []
             values = []
-            tokens = self.NAMING_LIB().tokens
+            tokens = self._naming_lib.tokens
             for token in tokens:
                 if token.name != item_text:
                     continue
@@ -537,7 +537,7 @@ class NameIt(base.BaseWidget, object):
             self.pattern_line.setText('')
             self.templates_widget.setEnabled(False)
         else:
-            template = self.NAMING_LIB().get_template(self.templates_list.currentItem().text())
+            template = self._naming_lib.get_template(self.templates_list.currentItem().text())
             if template is not None:
                 self.pattern_line.setText(template.pattern)
                 self.templates_widget.setEnabled(True)
@@ -549,9 +549,9 @@ class NameIt(base.BaseWidget, object):
         Initializes the naming data base
         """
 
-        self.NAMING_LIB().init_naming_data()
+        self._naming_lib.init_naming_data()
         self._init_data()
-        self._name_file_line.setText(str(self.NAMING_LIB().naming_file))
+        self._name_file_line.setText(str(self._naming_lib.naming_file))
 
     def _init_data(self):
         if self._load_rules():
@@ -573,9 +573,9 @@ class NameIt(base.BaseWidget, object):
         Internal function that load rules from data file
         """
 
-        self.rules_list.clear()
+        self.ºrules_list.clear()
 
-        rules = self.NAMING_LIB().rules
+        rules = self._naming_lib.rules
         if not rules:
             return False
 
@@ -594,7 +594,7 @@ class NameIt(base.BaseWidget, object):
 
         self.tokens_list.clear()
 
-        tokens = self.NAMING_LIB().tokens
+        tokens = self._naming_lib.tokens
         if not tokens:
             return False
 
@@ -609,7 +609,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         try:
-            templates = self.NAMING_LIB().templates
+            templates = self._naming_lib.templates
             self.templates_list.clear()
             if templates is not None:
                 for template in templates:
@@ -627,7 +627,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         try:
-            template_tokens = self.NAMING_LIB().template_tokens
+            template_tokens = self._naming_lib.template_tokens
             self.template_tokens_list.clear()
             if template_tokens is not None:
                 for template_token in template_tokens:
@@ -678,7 +678,7 @@ class NameIt(base.BaseWidget, object):
 
         temp_tokens = list()
         try:
-            temp = self.NAMING_LIB().get_template(template.name)
+            temp = self._naming_lib.get_template(template.name)
             # temp = lucidity.Template(template.name, template.pattern)
             temp_template = temp.template
             temp_template.duplicate_placeholder_mode = lucidity.Template.STRICT
@@ -687,7 +687,7 @@ class NameIt(base.BaseWidget, object):
             self._clear_template_tokens()
             return
 
-        template_tokens = self.NAMING_LIB().template_tokens
+        template_tokens = self._naming_lib.template_tokens
 
         self._clear_template_tokens()
 
@@ -749,7 +749,7 @@ class NameIt(base.BaseWidget, object):
 
         rule = None
         if not load_rule:
-            rule = self.NAMING_LIB().get_rule_unique_name(name='New_Rule')
+            rule = self._naming_lib.get_rule_unique_name(name='New_Rule')
         elif load_rule and len(args) == 1:
             rule = args[0].name
 
@@ -761,7 +761,7 @@ class NameIt(base.BaseWidget, object):
 
             # Add the data of the rule to our JSON data file
             if len(args) == 0:
-                self.NAMING_LIB().add_rule(rule)
+                self._naming_lib.add_rule(rule)
 
             # Update necessary UI Widgets
             if not load_rule:
@@ -783,9 +783,9 @@ class NameIt(base.BaseWidget, object):
         curr_rule = self.rules_list.currentItem()
         if curr_rule is not None:
             rule_name = self.rules_list.currentItem().text()
-            rule = self.NAMING_LIB().get_rule(rule_name)
+            rule = self._naming_lib.get_rule(rule_name)
             if rule is not None:
-                self.NAMING_LIB().remove_rule(rule_name)
+                self._naming_lib.remove_rule(rule_name)
                 self.rules_list.takeItem(self.rules_list.row(self.rules_list.currentItem()))
             self.update_rules_properties_state()
 
@@ -801,7 +801,7 @@ class NameIt(base.BaseWidget, object):
 
         if rule_item is not None:
             if rule_item.listWidget().count() > 0:
-                rule = self.NAMING_LIB().get_rule(rule_item.text())
+                rule = self._naming_lib.get_rule(rule_item.text())
                 if rule is not None:
                     self.description_rule_text.setText(rule.description)
                     self.expression_line.setText(rule.expression)
@@ -818,7 +818,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         rule_index = rule_item.listWidget().currentRow()
-        rule = self.NAMING_LIB().get_rule_by_index(rule_index)
+        rule = self._naming_lib.get_rule_by_index(rule_index)
         if rule:
             rule.name = rule_item.text()
 
@@ -833,7 +833,7 @@ class NameIt(base.BaseWidget, object):
         if not selected_rule:
             return
         rule_name = selected_rule.text()
-        rule = self.NAMING_LIB().get_rule(rule_name)
+        rule = self._naming_lib.get_rule(rule_name)
         if rule:
             rule.expression = self.expression_line.text()
 
@@ -845,7 +845,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         rule_name = self.rules_list.currentItem().text()
-        rule = self.NAMING_LIB().get_rule(rule_name)
+        rule = self._naming_lib.get_rule(rule_name)
         if rule:
             rule.description = self.description_rule_text.toPlainText()
 
@@ -861,7 +861,7 @@ class NameIt(base.BaseWidget, object):
             return
 
         rule_name = rule_item.text()
-        rule = self.NAMING_LIB().get_rule(rule_name)
+        rule = self._naming_lib.get_rule(rule_name)
         if rule:
             rule.iterator_format = self.iterator_cbx.itemText(iterator_index)
 
@@ -878,7 +878,7 @@ class NameIt(base.BaseWidget, object):
 
         token = None
         if not load_token:
-            token = self.NAMING_LIB().get_token_unique_name(name='New_Token')
+            token = self._naming_lib.get_token_unique_name(name='New_Token')
         elif load_token and len(args) == 1:
             token = args[0].name
 
@@ -890,7 +890,7 @@ class NameIt(base.BaseWidget, object):
 
             # Add the data of the token to our JSON data file
             if len(args) == 0:
-                self.NAMING_LIB().add_token(token)
+                self._naming_lib.add_token(token)
 
             # Update necessary UI wigdets
             if not load_token:
@@ -908,10 +908,10 @@ class NameIt(base.BaseWidget, object):
             token_index = self.tokens_list.currentRow()
             name = self.tokens_list.currentItem().text()
             if token_index > -1 and name is not None:
-                token = self.NAMING_LIB().get_token(name)
+                token = self._naming_lib.get_token(name)
                 if token is not None:
                     if token.name == name:
-                        self.NAMING_LIB().remove_token(name)
+                        self._naming_lib.remove_token(name)
                         self.tokens_list.takeItem(self.tokens_list.row(self.tokens_list.currentItem()))
 
     def _on_change_token(self, token_item):
@@ -924,7 +924,7 @@ class NameIt(base.BaseWidget, object):
 
         if token_item is not None:
             if token_item.listWidget().count() > 0:
-                token = self.NAMING_LIB().get_token(token_item.text())
+                token = self._naming_lib.get_token(token_item.text())
                 if token:
                     try:
                         self.description_rule_text.blockSignals(True)
@@ -946,7 +946,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         token_index = self.tokens_list.currentRow()
-        token = self.NAMING_LIB().get_token_by_index(token_index)
+        token = self._naming_lib.get_token_by_index(token_index)
         if token:
             token.name = token_item.text()
 
@@ -958,7 +958,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         token_text = self.tokens_list.currentItem().text()
-        token = self.NAMING_LIB().get_token(token_text)
+        token = self._naming_lib.get_token(token_text)
         if not token:
             return
 
@@ -976,7 +976,7 @@ class NameIt(base.BaseWidget, object):
         self.description_rule_text.blockSignals(True)
 
         token_text = self.tokens_list.currentItem().text()
-        token = self.NAMING_LIB().get_token(token_text)
+        token = self._naming_lib.get_token(token_text)
         if token:
             key_data = token.add_token_value()
             if key_data:
@@ -1011,7 +1011,7 @@ class NameIt(base.BaseWidget, object):
         self.description_rule_text.blockSignals(True)
 
         token_text = self.tokens_list.currentItem().text()
-        token = self.NAMING_LIB().get_token(token_text)
+        token = self._naming_lib.get_token(token_text)
         if token:
             key_data = token.remove_token_value(self.values_table.currentRow())
             if key_data:
@@ -1047,7 +1047,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         token_text = self.tokens_list.currentItem().text()
-        token = self.NAMING_LIB().get_token(token_text)
+        token = self._naming_lib.get_token(token_text)
         if token:
             token.default = index
 
@@ -1057,7 +1057,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         token_text = self.tokens_list.currentItem().text()
-        token = self.NAMING_LIB().get_token(token_text)
+        token = self._naming_lib.get_token(token_text)
         if token:
             token.description = self.description_token_text.toPlainText().strip()
 
@@ -1073,7 +1073,7 @@ class NameIt(base.BaseWidget, object):
 
         template = None
         if not load_template:
-            template = self.NAMING_LIB().get_template_unique_name('New_Template')
+            template = self._naming_lib.get_template_unique_name('New_Template')
         elif load_template and len(args) == 1:
             template = args[0].name
 
@@ -1083,7 +1083,7 @@ class NameIt(base.BaseWidget, object):
             self.templates_list.addItem(item)
 
             if len(args) == 0:
-                self.NAMING_LIB().add_template(template)
+                self._naming_lib.add_template(template)
 
             if not load_template:
                 self.templates_list.setCurrentItem(item)
@@ -1099,10 +1099,10 @@ class NameIt(base.BaseWidget, object):
             template_index = self.templates_list.currentRow()
             name = self.templates_list.currentItem().text()
             if template_index > -1 and name is not None:
-                template = self.NAMING_LIB().get_template(name)
+                template = self._naming_lib.get_template(name)
                 if template is not None:
                     if template.name == name:
-                        valid_remove = self.NAMING_LIB().remove_template(name)
+                        valid_remove = self._naming_lib.remove_template(name)
                         if valid_remove:
                             self.templates_list.takeItem(self.templates_list.row(self.templates_list.currentItem()))
 
@@ -1116,7 +1116,7 @@ class NameIt(base.BaseWidget, object):
             return
 
         template_name = template_item.text()
-        template = self.NAMING_LIB().get_template(template_name)
+        template = self._naming_lib.get_template(template_name)
         if not template:
 
             return
@@ -1132,7 +1132,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         template_index = self.templates_list.currentRow()
-        template = self.NAMING_LIB().get_template_by_index(template_index)
+        template = self._naming_lib.get_template_by_index(template_index)
         if template:
             template.name = template_item.text()
 
@@ -1143,7 +1143,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         template_index = self.templates_list.currentRow()
-        template = self.NAMING_LIB().get_template_by_index(template_index)
+        template = self._naming_lib.get_template_by_index(template_index)
         if template:
             template.pattern = self.pattern_line.text()
             self._update_template_tokens(template)
@@ -1161,7 +1161,7 @@ class NameIt(base.BaseWidget, object):
 
         template_token = None
         if not load_template_token:
-            template_token = self.NAMING_LIB().get_template_token_unique_name('New_Template_Token')
+            template_token = self._naming_lib.get_template_token_unique_name('New_Template_Token')
         elif load_template_token and len(args) == 1:
             template_token = args[0].name
 
@@ -1171,7 +1171,7 @@ class NameIt(base.BaseWidget, object):
             self.template_tokens_list.addItem(item)
 
             if len(args) == 0:
-                self.NAMING_LIB().add_template_token(template_token)
+                self._naming_lib.add_template_token(template_token)
 
             if not load_template_token:
                 self.template_tokens_list.setCurrentItem(item)
@@ -1187,9 +1187,9 @@ class NameIt(base.BaseWidget, object):
             template_token_index = self.template_tokens_list.currentRow()
             name = self.template_tokens_list.currentItem().text()
             if template_token_index > -1 and name is not None:
-                template = self.NAMING_LIB().get_template_token(name)
+                template = self._naming_lib.get_template_token(name)
                 if template.name == name:
-                    valid_remove = self.NAMING_LIB().remove_template_token(name)
+                    valid_remove = self._naming_lib.remove_template_token(name)
                     if valid_remove:
                         self.template_tokens_list.takeItem(
                             self.template_tokens_list.row(self.template_tokens_list.currentItem()))
@@ -1204,7 +1204,7 @@ class NameIt(base.BaseWidget, object):
             return
 
         template_tokien_name = template_token_item.text()
-        template_token = self.NAMING_LIB().get_template_token(template_tokien_name)
+        template_token = self._naming_lib.get_template_token(template_tokien_name)
         if not template_token:
             return
 
@@ -1218,7 +1218,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         token_index = self.template_tokens_list.currentRow()
-        template_token = self.NAMING_LIB().get_template_token_by_index(token_index)
+        template_token = self._naming_lib.get_template_token_by_index(token_index)
         if template_token:
             template_token.name = token_template_item.text()
 
@@ -1228,7 +1228,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         template_token_text = self.template_tokens_list.currentItem().text()
-        template_token = self.NAMING_LIB().get_template_token(template_token_text)
+        template_token = self._naming_lib.get_template_token(template_token_text)
         if template_token:
             template_token.description = self.description_templates_token_text.toPlainText().rstrip()
 
@@ -1261,7 +1261,7 @@ class NameIt(base.BaseWidget, object):
         Internal function that is called when save button is pressed
         """
 
-        self.NAMING_LIB().load_session()
+        self._naming_lib.load_session()
         self._init_data()
 
     def _on_save(self):
@@ -1269,7 +1269,7 @@ class NameIt(base.BaseWidget, object):
         Internal function that is called when save button is pressed
         """
 
-        self.NAMING_LIB().save_session()
+        self._naming_lib.save_session()
 
 
 class ValuesTableModel(QAbstractTableModel, object):
