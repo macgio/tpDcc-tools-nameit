@@ -573,7 +573,7 @@ class NameIt(base.BaseWidget, object):
         Internal function that load rules from data file
         """
 
-        self._rules_list.clear()
+        self.rules_list.clear()
 
         rules = self._naming_lib.rules
         if not rules:
