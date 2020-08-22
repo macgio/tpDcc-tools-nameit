@@ -421,8 +421,17 @@ class NameIt(base.BaseWidget, object):
         :param data_file: str
         """
 
-        self._data_file = data_file if data_file and os.path.isfile(data_file) else self._get_default_data_file()
-        self._naming_lib.naming_file = self._data_file
+        if data_file and os.path.isfile(data_file):
+            self._naming_lib.naming_file = data_file
+            self._data_file = data_file
+        else:
+            naming_file = self._naming_lib.naming_file
+            if naming_file and os.path.isfile(naming_file):
+                self._data_file = self._naming_lib.naming_file
+            else:
+                self._data_file = self._get_default_data_file()
+            self._naming_lib.naming_file = self._data_file
+
         self._init_db()
 
     def add_expression(self, name):
