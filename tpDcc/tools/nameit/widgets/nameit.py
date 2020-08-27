@@ -19,9 +19,8 @@ from Qt.QtWidgets import *
 
 import tpDcc
 from tpDcc.libs.qt.core import base
-from tpDcc.libs.qt.widgets import dividers
+from tpDcc.libs.qt.widgets import layouts, label, dividers, buttons, lineedit, tabs, combobox, toolbar
 
-from tpDcc.tools.nameit.core import lib
 from tpDcc.libs.nameit.externals import lucidity
 
 logger = tpDcc.LogsMgr().get_logger('tpDcc-tools-nameit')
@@ -37,112 +36,105 @@ class NameIt(base.BaseWidget, object):
         super(NameIt, self).__init__(parent=parent)
         self.set_data_file(data_file)
 
-    @classmethod
-    def get_active_rule(cls):
+    def get_active_rule(self):
 
         """
         Returns the current naming active rule
         """
 
-        return cls.NAMING_LIB().active_rule()
+        return self._naming_lib.active_rule()
 
-    @classmethod
-    def set_active_rule(cls, name):
+    def set_active_rule(self, name):
         """
         Sets the current active rule
         :param name: str
         """
 
         # First, we clean the status of the naming library
-        cls.NAMING_LIB().remove_all_tokens()
-        cls.NAMING_LIB().remove_all_rules()
+        self._naming_lib.remove_all_tokens()
+        self._naming_lib.remove_all_rules()
 
-        cls.NAMING_LIB().load_session()
+        self._naming_lib.load_session()
 
         # Load rules from the naming manager
-        rules = cls.NAMING_LIB().rules
+        rules = self._naming_lib.rules
         for rule in rules:
             expressions = rule.get_expression_tokens()
-            cls.NAMING_LIB().add_rule(rule.name, rule.iterator_format, *expressions)
+            self._naming_lib.add_rule(rule.name, rule.iterator_format, *expressions)
 
         # Load tokens from the naming manager
-        tokens = cls.NAMING_LIB().tokens
+        tokens = self._naming_lib.tokens
         for token in tokens:
             tokens_keywords = token.get_values_as_keyword()
-            cls.NAMING_LIB().add_token(token.name, **tokens_keywords)
+            self._naming_lib.add_token(token.name, **tokens_keywords)
 
-        cls.NAMING_LIB().set_active_rule(name)
+        self._naming_lib.set_active_rule(name)
 
-    @classmethod
-    def set_active_rule_iterator(cls, iterator_format):
-        active_rule = cls.get_active_rule()
+    def set_active_rule_iterator(self, iterator_format):
+        active_rule = self.get_active_rule()
         if not active_rule:
             return
 
-    @classmethod
-    def set_active_rule_auto_fix(cls, auto_fix):
-        active_rule = cls.get_active_rule()
+    def set_active_rule_auto_fix(self, auto_fix):
+        active_rule = self.get_active_rule()
         if not active_rule:
             return
 
-        cls.NAMING_LIB().set_rule_auto_fix(active_rule.name(), auto_fix)
+        self._naming_lib.set_rule_auto_fix(active_rule.name(), auto_fix)
 
-    @classmethod
-    def solve(cls, *args, **kwargs):
+    def solve(self, *args, **kwargs):
         if len(args) > 0 and len(kwargs) > 0:
-            return cls.NAMING_LIB().solve(*args, **kwargs)
+            return self._naming_lib.solve(*args, **kwargs)
         else:
             if len(args) > 0:
-                return cls.NAMING_LIB().solve(*args)
+                return self._naming_lib.solve(*args)
             else:
-                return cls.NAMING_LIB().solve(**kwargs)
+                return self._naming_lib.solve(**kwargs)
 
     def ui(self):
         super(NameIt, self).ui()
 
-        toolbar = QToolBar('Main ToolBar')
-        toolbar.setMovable(True)
-        toolbar.setAllowedAreas(Qt.TopToolBarArea | Qt.BottomToolBarArea)
-        self.main_layout.addWidget(toolbar)
+        tools_toolbar = toolbar.ToolBar('Main ToolBar')
+        tools_toolbar.setMovable(True)
+        tools_toolbar.setAllowedAreas(Qt.TopToolBarArea | Qt.BottomToolBarArea)
+        self.main_layout.addWidget(tools_toolbar)
 
         refresh_icon = tpDcc.ResourcesMgr().icon('refresh')
-        refresh_btn = QToolButton()
+        refresh_btn = buttons.BaseToolButton(parent=self)
         refresh_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        refresh_action = QAction(refresh_icon, 'Refresh', refresh_btn)
+        refresh_action = QAction(refresh_icon, '', refresh_btn)
         refresh_btn.setDefaultAction(refresh_action)
         refresh_btn.clicked.connect(self._on_refresh)
-        toolbar.addWidget(refresh_btn)
+        tools_toolbar.addWidget(refresh_btn)
 
         save_icon = tpDcc.ResourcesMgr().icon('save')
-        save_btn = QToolButton()
+        save_btn = buttons.BaseToolButton(parent=self)
+        save_btn.setMinimumHeight(80)
         save_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-        save_action = QAction(save_icon, 'Save', save_btn)
+        save_action = QAction(save_icon, '', save_btn)
         save_btn.setDefaultAction(save_action)
         save_btn.clicked.connect(self._on_save)
-        toolbar.addWidget(save_btn)
+        tools_toolbar.addWidget(save_btn)
 
         if self._is_renamer_tool_available():
             rename_icon = tpDcc.ResourcesMgr().icon('rename')
-            renamer_btn = QToolButton()
+            renamer_btn = buttons.BaseToolButton(parent=self)
             renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-            run_tasks_action = QAction(rename_icon, 'Renamer', renamer_btn)
+            run_tasks_action = QAction(rename_icon, '', renamer_btn)
             renamer_btn.setDefaultAction(run_tasks_action)
             renamer_btn.clicked.connect(self._on_open_renamer_tool)
-            toolbar.addWidget(renamer_btn)
+            tools_toolbar.addWidget(renamer_btn)
 
-        self._name_file_line = QLineEdit()
+        self._name_file_line = lineedit.BaseLineEdit()
         self._name_file_line.setReadOnly(True)
-        toolbar.addWidget(self._name_file_line)
+        tools_toolbar.addWidget(self._name_file_line)
 
-        base_layout = QHBoxLayout()
-        base_layout.setContentsMargins(0, 0, 0, 0)
-        base_layout.setSpacing(0)
+        base_layout = layouts.HorizontalLayout(spacing=0, margins=(0, 0, 0, 0))
         self.main_layout.addLayout(base_layout)
 
         left_panel_widget = QWidget()
         left_panel_widget.setFixedWidth(310)
-        left_panel_layout = QVBoxLayout()
-        left_panel_layout.setContentsMargins(5, 0, 5, 0)
+        left_panel_layout = layouts.VerticalLayout(margins=(5, 0, 5, 0))
         left_panel_widget.setLayout(left_panel_layout)
         base_layout.addWidget(left_panel_widget)
 
@@ -152,7 +144,7 @@ class NameIt(base.BaseWidget, object):
         templates_tab = QWidget()
         templates_tokens_tab = QWidget()
 
-        self.tabs = QTabWidget()
+        self.tabs = tabs.BaseTabWidget()
         self.tabs.addTab(rules_tab, 'Rules')
         self.tabs.addTab(tokens_tab, 'Tokens')
         self.tabs.addTab(templates_tab, 'Templates')
@@ -160,16 +152,13 @@ class NameIt(base.BaseWidget, object):
         left_panel_layout.addWidget(self.tabs)
 
         # Rules Tab
-        rules_main_layout = QVBoxLayout()
-        rules_main_layout.setContentsMargins(5, 5, 5, 5)
-        rules_main_layout.setSpacing(0)
+        rules_main_layout = layouts.VerticalLayout(spacing=0, margins=(5, 5, 5, 5))
         self.rules_list = QListWidget()
         rules_main_layout.addWidget(self.rules_list)
-        left_panel_buttons_layout_rules = QHBoxLayout()
-        left_panel_buttons_layout_rules.setContentsMargins(5, 5, 5, 0)
+        left_panel_buttons_layout_rules = layouts.HorizontalLayout(margins=(5, 5, 5, 0))
         rules_main_layout.addLayout(left_panel_buttons_layout_rules)
-        self.add_rule_btn = QPushButton('+')
-        self.remove_rule_btn = QPushButton('-')
+        self.add_rule_btn = buttons.BaseButton('+')
+        self.remove_rule_btn = buttons.BaseButton('-')
         left_panel_buttons_layout_rules.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         left_panel_buttons_layout_rules.addWidget(self.add_rule_btn)
         left_panel_buttons_layout_rules.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
@@ -178,16 +167,14 @@ class NameIt(base.BaseWidget, object):
         rules_tab.setLayout(rules_main_layout)
 
         # Tokens Tab
-        tokens_main_layout = QVBoxLayout()
-        tokens_main_layout.setContentsMargins(5, 5, 5, 5)
+        tokens_main_layout = layouts.VerticalLayout(margins=(5, 5, 5, 5))
         tokens_main_layout.setSpacing(0)
         self.tokens_list = QListWidget()
         tokens_main_layout.addWidget(self.tokens_list)
-        left_panel_buttons_layout_tokens = QHBoxLayout()
-        left_panel_buttons_layout_tokens.setContentsMargins(5, 5, 5, 0)
+        left_panel_buttons_layout_tokens = layouts.HorizontalLayout(margins=(5, 5, 5, 0))
         tokens_main_layout.addLayout(left_panel_buttons_layout_tokens)
-        self.add_token_btn = QPushButton('+')
-        self.remove_token_btn = QPushButton('-')
+        self.add_token_btn = buttons.BaseButton('+')
+        self.remove_token_btn = buttons.BaseButton('-')
         left_panel_buttons_layout_tokens.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         left_panel_buttons_layout_tokens.addWidget(self.add_token_btn)
         left_panel_buttons_layout_tokens.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
@@ -196,16 +183,13 @@ class NameIt(base.BaseWidget, object):
         tokens_tab.setLayout(tokens_main_layout)
 
         # Templates Tab
-        templates_main_layout = QVBoxLayout()
-        templates_main_layout.setContentsMargins(5, 5, 5, 5)
-        templates_main_layout.setSpacing(0)
+        templates_main_layout = layouts.VerticalLayout(spacing=0, margins=(5, 5, 5, 5))
         self.templates_list = QListWidget()
         templates_main_layout.addWidget(self.templates_list)
-        left_panel_buttons_layout_templates = QHBoxLayout()
-        left_panel_buttons_layout_templates.setContentsMargins(5, 5, 5, 0)
+        left_panel_buttons_layout_templates = layouts.HorizontalLayout(margins=(5, 5, 5, 0))
         templates_main_layout.addLayout(left_panel_buttons_layout_templates)
-        self.add_template_btn = QPushButton('+')
-        self.remove_template_btn = QPushButton('-')
+        self.add_template_btn = buttons.BaseButton('+')
+        self.remove_template_btn = buttons.BaseButton('-')
         left_panel_buttons_layout_templates.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         left_panel_buttons_layout_templates.addWidget(self.add_template_btn)
         left_panel_buttons_layout_templates.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
@@ -214,16 +198,14 @@ class NameIt(base.BaseWidget, object):
         templates_tab.setLayout(templates_main_layout)
 
         # Template Tokens Tab
-        templates_tokens_main_layout = QVBoxLayout()
-        templates_tokens_main_layout.setContentsMargins(5, 5, 5, 5)
-        templates_tokens_main_layout.setSpacing(0)
+        templates_tokens_main_layout = layouts.VerticalLayout(spacing=0, margins=(5, 5, 5, 5))
         self.template_tokens_list = QListWidget()
         templates_tokens_main_layout.addWidget(self.template_tokens_list)
-        left_panel_buttons_layout_templates_tokens = QHBoxLayout()
+        left_panel_buttons_layout_templates_tokens = layouts.HorizontalLayout(margins=(5, 5, 5, 0))
         left_panel_buttons_layout_templates_tokens.setContentsMargins(5, 5, 5, 0)
         templates_tokens_main_layout.addLayout(left_panel_buttons_layout_templates_tokens)
-        self.add_template_token_btn = QPushButton('+')
-        self.remove_template_token_btn = QPushButton('-')
+        self.add_template_token_btn = buttons.BaseButton('+')
+        self.remove_template_token_btn = buttons.BaseButton('-')
         left_panel_buttons_layout_templates_tokens.addItem(
             QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         left_panel_buttons_layout_templates_tokens.addWidget(self.add_template_token_btn)
@@ -237,21 +219,17 @@ class NameIt(base.BaseWidget, object):
         # === PROPERTIES === #
         main_group = QGroupBox('Properties')
         base_layout.addWidget(main_group)
-        self.group_layout = QVBoxLayout()
-        self.group_layout.setContentsMargins(5, 5, 5, 5)
-        self.group_layout.setSpacing(0)
+        self.group_layout = layouts.VerticalLayout(spacing=0, margins=(5, 5, 5, 5))
         main_group.setLayout(self.group_layout)
 
         # Rules Panel
         self.rules_widget = QWidget(self)
-        rules_layout = QVBoxLayout()
+        rules_layout = layouts.VerticalLayout()
         self.rules_widget.setLayout(rules_layout)
-        expression_layout = QHBoxLayout()
-        expression_layout.setContentsMargins(5, 5, 5, 5)
-        expression_layout.setSpacing(5)
-        expression_lbl = QLabel('Expression:  ', self)
-        self.expression_line = QLineEdit()
-        self.expression_btn = QPushButton('   <')
+        expression_layout = layouts.HorizontalLayout(spacing=5, margins=(5, 5, 5, 5))
+        expression_lbl = label.BaseLabel('Expression:  ', parent=self)
+        self.expression_line = lineedit.BaseLineEdit(parent=self)
+        self.expression_btn = buttons.BaseButton('   <', parent=self)
         self.expression_btn.setEnabled(False)
         self.expression_btn.setStyleSheet("QPushButton::menu-indicator{image:url(none.jpg);}")
         self.expression_menu = QMenu(self)
@@ -261,11 +239,9 @@ class NameIt(base.BaseWidget, object):
         expression_layout.addWidget(self.expression_btn)
         rules_layout.addLayout(expression_layout)
 
-        iterator_layout = QHBoxLayout()
-        iterator_layout.setContentsMargins(5, 5, 5, 5)
-        iterator_layout.setSpacing(5)
-        iterator_lbl = QLabel('Iterator:         ')
-        self.iterator_cbx = QComboBox()
+        iterator_layout = layouts.HorizontalLayout(spacing=5, margins=(5, 5, 5, 5))
+        iterator_lbl = label.BaseLabel('Iterator:         ', parent=self)
+        self.iterator_cbx = combobox.BaseComboBox()
         self.iterator_cbx.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         for it_format in ['@', '@^', '#', '##', '###', '####', '#####', 'None']:
             self.iterator_cbx.addItem(it_format)
@@ -273,11 +249,9 @@ class NameIt(base.BaseWidget, object):
         iterator_layout.addWidget(self.iterator_cbx)
         rules_layout.addLayout(iterator_layout)
 
-        description_rule_layout = QHBoxLayout()
-        description_rule_layout.setContentsMargins(5, 5, 5, 5)
-        description_rule_layout.setSpacing(5)
-        description_rule_lbl_layout = QVBoxLayout()
-        description_rule_lbl = QLabel('Description: ')
+        description_rule_layout = layouts.HorizontalLayout(spacing=5, margins=(5, 5, 5, 5))
+        description_rule_lbl_layout = layouts.VerticalLayout()
+        description_rule_lbl = label.BaseLabel('Description: ')
         description_rule_lbl.setAlignment(Qt.AlignTop)
         description_rule_layout.addWidget(description_rule_lbl)
         self.description_rule_text = QTextEdit()
@@ -289,12 +263,10 @@ class NameIt(base.BaseWidget, object):
 
         # Tokens Panel
         self.tokens_widget = QWidget()
-        tokens_layout = QVBoxLayout()
+        tokens_layout = layouts.VerticalLayout()
         self.tokens_widget.setLayout(tokens_layout)
-        values_layout = QHBoxLayout()
-        values_layout.setContentsMargins(5, 5, 5, 5)
-        values_layout.setSpacing(5)
-        valuesLbl = QLabel('Values: ')
+        values_layout = layouts.HorizontalLayout(spacing=5, margins=(5, 5, 5, 5))
+        valuesLbl = label.BaseLabel('Values: ')
         values_layout.addWidget(valuesLbl)
         values_layout.addItem(QSpacerItem(25, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         data = {'key': [], 'value': []}
@@ -303,28 +275,23 @@ class NameIt(base.BaseWidget, object):
         self.values_table.setColumnWidth(0, 140)
         self.values_table.setColumnWidth(1, 140)
         self.values_table.setFixedWidth(300)
-        values_buttons_layout = QVBoxLayout()
-        values_buttons_layout.setContentsMargins(5, 5, 5, 0)
+        values_buttons_layout = layouts.VerticalLayout(margins=(5, 5, 5, 0))
         values_layout.addLayout(values_buttons_layout)
-        self.add_key_value_btn = QPushButton('+')
-        self.remove_key_value_btn = QPushButton('-')
+        self.add_key_value_btn = buttons.BaseButton('+')
+        self.remove_key_value_btn = buttons.BaseButton('-')
         values_buttons_layout.addWidget(self.add_key_value_btn)
         values_buttons_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         values_buttons_layout.addWidget(self.remove_key_value_btn)
         values_buttons_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
-        default_layout = QHBoxLayout()
-        default_layout.setContentsMargins(5, 5, 5, 5)
-        default_layout.setSpacing(5)
-        default_lbl = QLabel('Default: ')
-        self.default_cbx = QComboBox()
+        default_layout = layouts.HorizontalLayout(spacing=5, margins=(5, 5, 5, 5))
+        default_lbl = label.BaseLabel('Default: ', parent=self)
+        self.default_cbx = combobox.BaseComboBox(parent=self)
         self.default_cbx.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum)
         default_layout.addWidget(default_lbl)
         default_layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Minimum))
         default_layout.addWidget(self.default_cbx)
-        description_token_layout = QHBoxLayout()
-        description_token_layout.setContentsMargins(5, 5, 5, 5)
-        description_token_layout.setSpacing(5)
-        description_tokens_lbl = QLabel('Description: ')
+        description_token_layout = layouts.HorizontalLayout(spacing=5, margins=(5, 5, 5, 5))
+        description_tokens_lbl = label.BaseLabel('Description: ', parent=self)
         self.description_token_text = QTextEdit()
         description_token_layout.addWidget(description_tokens_lbl)
         description_token_layout.addWidget(self.description_token_text)
@@ -336,18 +303,16 @@ class NameIt(base.BaseWidget, object):
 
         # Templates Panel
         self.templates_widget = QWidget()
-        templates_layout = QVBoxLayout()
+        templates_layout = layouts.VerticalLayout()
         self.templates_widget.setLayout(templates_layout)
-        pattern_layout = QHBoxLayout()
-        pattern_layout.setContentsMargins(5, 5, 5, 5)
-        pattern_layout.setSpacing(5)
-        pattern_lbl = QLabel('Pattern: ')
-        self.pattern_line = QLineEdit()
+        pattern_layout = layouts.HorizontalLayout(spacing=5, margins=(5, 5, 5, 5))
+        pattern_lbl = label.BaseLabel('Pattern: ', parent=self)
+        self.pattern_line = lineedit.BaseLineEdit(parent=self)
         pattern_layout.addWidget(pattern_lbl)
         pattern_layout.addWidget(self.pattern_line)
         templates_layout.addLayout(pattern_layout)
         templates_layout.addLayout(dividers.DividerLayout())
-        self.template_tokens_layout = QGridLayout()
+        self.template_tokens_layout = layouts.GridLayout()
         self.template_tokens_layout.setAlignment(Qt.AlignTop)
         template_tokens_frame = QFrame()
         template_tokens_frame.setFrameShape(QFrame.StyledPanel)
@@ -359,14 +324,12 @@ class NameIt(base.BaseWidget, object):
 
         # Templates Tokens Panel
         self.templates_tokens_widget = QWidget()
-        templates_tokens_layout = QVBoxLayout()
+        templates_tokens_layout = layouts.VerticalLayout()
         self.templates_tokens_widget.setLayout(templates_tokens_layout)
-        description_templates_token_layout = QHBoxLayout()
-        description_templates_token_layout.setContentsMargins(5, 5, 5, 5)
-        description_templates_token_layout.setSpacing(5)
-        description_tokens_layout = QVBoxLayout()
-        description_templates_token_lbl = QLabel('Description: ')
-        description_tokens_layout.addWidget(description_tokens_lbl)
+        description_templates_token_layout = layouts.HorizontalLayout(spacing=5, margins=(5, 5, 5, 5))
+        description_tokens_layout = layouts.VerticalLayout()
+        description_templates_token_lbl = label.BaseLabel('Description: ', parent=self)
+        description_tokens_layout.addWidget(description_templates_token_lbl)
         description_tokens_layout.addItem(QSpacerItem(0, 10, QSizePolicy.Preferred, QSizePolicy.Expanding))
         self.description_templates_token_text = QTextEdit()
         description_templates_token_layout.addLayout(description_tokens_layout)
@@ -672,7 +635,7 @@ class NameIt(base.BaseWidget, object):
         while self.template_tokens_layout.itemAtPosition(row, 0) is not None:
             row += 1
 
-        self.template_tokens_layout.addWidget(QLabel(template_token_name), row, 0)
+        self.template_tokens_layout.addWidget(label.BaseLabel(template_token_name), row, 0)
         self.template_tokens_layout.addWidget(
             QLabel(template_token_description if template_token_description else '< NOT FOUND >'), row, 1)
 
