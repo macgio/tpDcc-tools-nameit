@@ -12,6 +12,6 @@ from tpDcc.libs.python import decorators
 from tpDcc.libs.nameit.core import namelib
 
 
-@decorators.Singleton
+@decorators.add_metaclass(decorators.Singleton)
 class NameItLib(namelib.NameLib, object):
     pass

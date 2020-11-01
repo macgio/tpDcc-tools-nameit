@@ -11,19 +11,20 @@ from __future__ import print_function, division, absolute_import
 #  using that token
 
 import os
+import logging
 import traceback
 from functools import partial
 
-from Qt.QtCore import *
-from Qt.QtWidgets import *
+from Qt.QtCore import Qt, QAbstractTableModel
+from Qt.QtWidgets import QSizePolicy, QAction, QListWidget, QSpacerItem, QGroupBox, QTextEdit, QListWidgetItem
+from Qt.QtWidgets import QMenu, QFrame, QWidget, QTableWidget, QTableWidgetItem
 
-import tpDcc
+from tpDcc.managers import resources, tools
 from tpDcc.libs.qt.core import base
 from tpDcc.libs.qt.widgets import layouts, label, dividers, buttons, lineedit, tabs, combobox, toolbar
-
 from tpDcc.libs.nameit.externals import lucidity
 
-logger = tpDcc.LogsMgr().get_logger('tpDcc-tools-nameit')
+logger = logging.getLogger('tpDcc-tools-nameit')
 
 
 class NameIt(base.BaseWidget, object):
@@ -99,7 +100,7 @@ class NameIt(base.BaseWidget, object):
         tools_toolbar.setAllowedAreas(Qt.TopToolBarArea | Qt.BottomToolBarArea)
         self.main_layout.addWidget(tools_toolbar)
 
-        refresh_icon = tpDcc.ResourcesMgr().icon('refresh')
+        refresh_icon = resources.icon('refresh')
         refresh_btn = buttons.BaseToolButton(parent=self)
         refresh_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
         refresh_action = QAction(refresh_icon, '', refresh_btn)
@@ -107,7 +108,7 @@ class NameIt(base.BaseWidget, object):
         refresh_btn.clicked.connect(self._on_refresh)
         tools_toolbar.addWidget(refresh_btn)
 
-        save_icon = tpDcc.ResourcesMgr().icon('save')
+        save_icon = resources.icon('save')
         save_btn = buttons.BaseToolButton(parent=self)
         save_btn.setMinimumHeight(80)
         save_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
@@ -117,7 +118,7 @@ class NameIt(base.BaseWidget, object):
         tools_toolbar.addWidget(save_btn)
 
         if self._is_renamer_tool_available():
-            rename_icon = tpDcc.ResourcesMgr().icon('rename')
+            rename_icon = resources.icon('rename')
             renamer_btn = buttons.BaseToolButton(parent=self)
             renamer_btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
             run_tasks_action = QAction(rename_icon, '', renamer_btn)
@@ -637,7 +638,8 @@ class NameIt(base.BaseWidget, object):
 
         self.template_tokens_layout.addWidget(label.BaseLabel(template_token_name), row, 0)
         self.template_tokens_layout.addWidget(
-            QLabel(template_token_description if template_token_description else '< NOT FOUND >'), row, 1)
+            label.BaseLabel(
+                template_token_description if template_token_description else '< NOT FOUND >', parent=self), row, 1)
 
     def _update_template_tokens(self, template):
         """
@@ -1210,7 +1212,7 @@ class NameIt(base.BaseWidget, object):
         """
 
         try:
-            tpDcc.ToolsMgr().launch_tool_by_id('tpDcc-tools-renamer', do_reload=False)
+            tools.ToolsManager().launch_tool_by_id('tpDcc-tools-renamer', do_reload=False)
         except Exception:
             logger.warning('tpDcc-tools-renamer is not available!')
             return None
